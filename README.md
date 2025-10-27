@@ -25,8 +25,8 @@ Track and understand NY State legislation.
 
 ## Environment Variables
 Create `.env` files in both frontend and backend directories:
-- `NY_SENATE_API_KEY` - Get from [NY Senate API](https://legislation.nysenate.gov/api/3/)
-- `HUGGINGFACE_API_KEY` - Get from [Hugging Face](https://huggingface.co/settings/tokens)
+- `NY_SENATE_API_KEY` - Get from [NY Senate API](https://legislation.nysenate.gov/public)
+- `HUGGINGFACE_API_KEY` - Get from [Hugging Face](https://huggingface.co)
 - `REDIS_URL` - Optional, for caching
 
 ## Features
