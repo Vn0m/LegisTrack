@@ -4,26 +4,21 @@ server:
 spring:
   application:
     name: legistrack-backend
-  # Temporarily disabled - database not connected yet
-  # datasource:
-  #   url: ${DATABASE_URL}
-  #   username: ${DATABASE_USERNAME}
-  #   password: ${DATABASE_PASSWORD}
-  #   driver-class-name: org.postgresql.Driver
-  # jpa:
-  #   hibernate:
-  #     ddl-auto: validate
-  #   show-sql: false
-  #   properties:
-  #     hibernate:
-  #       dialect: org.hibernate.dialect.PostgreSQLDialect
-  #       format_sql: true
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
-      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
   redis:
-    url: ${REDIS_URL:redis://localhost:6379}
+    url: ${REDIS_URL}
 
 app:
   nysenate:
@@ -31,6 +26,9 @@ app:
     apiKey: ${NY_SENATE_API_KEY}
   huggingface:
     apiKey: ${HUGGINGFACE_API_KEY}
+  supabase:
+    url: ${SUPABASE_URL}
+    serviceKey: ${SUPABASE_SERVICE_ROLE_KEY}
 
 logging:
   level:
