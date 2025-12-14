@@ -12,9 +12,10 @@ import java.util.UUID;
 @Repository
 public interface AiSummaryRepository extends JpaRepository<AiSummary, UUID> {
     
-    Optional<AiSummary> findByBillId(UUID billId);
+    @Query("SELECT a FROM AiSummary a WHERE a.bill.id = :billId")
+    Optional<AiSummary> findByBillId(@Param("billId") UUID billId);
     
-    boolean existsByBillId(UUID billId);
+    boolean existsByBill_Id(UUID billId);
     
     @Query("SELECT ai FROM AiSummary ai JOIN FETCH ai.bill WHERE ai.bill.id = :billId")
     Optional<AiSummary> findByBillIdWithBillDetails(@Param("billId") UUID billId);

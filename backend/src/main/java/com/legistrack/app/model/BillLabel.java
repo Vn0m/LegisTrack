@@ -1,7 +1,7 @@
 package com.legistrack.app.model;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Objects;
 
 @Entity
@@ -19,14 +19,14 @@ public class BillLabel {
     private Label label;
     
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    private OffsetDateTime createdAt;
     
     public BillLabel() {}
     
     public BillLabel(Bill bill, Label label) {
         this.bill = bill;
         this.label = label;
-        this.createdAt = LocalDateTime.now();
+        this.createdAt = OffsetDateTime.now();
     }
     
     public Bill getBill() { return bill; }
@@ -35,8 +35,8 @@ public class BillLabel {
     public Label getLabel() { return label; }
     public void setLabel(Label label) { this.label = label; }
     
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public OffsetDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
     
     @Override
     public boolean equals(Object o) {

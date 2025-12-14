@@ -15,11 +15,11 @@ public interface SavedBillRepository extends JpaRepository<SavedBill, UUID> {
     
     List<SavedBill> findByUserId(UUID userId);
     
-    Optional<SavedBill> findByUserIdAndBillId(UUID userId, UUID billId);
+    Optional<SavedBill> findByUserIdAndBill_Id(UUID userId, UUID billId);
     
-    boolean existsByUserIdAndBillId(UUID userId, UUID billId);
+    boolean existsByUserIdAndBill_Id(UUID userId, UUID billId);
     
-    void deleteByUserIdAndBillId(UUID userId, UUID billId);
+    void deleteByUserIdAndBill_Id(UUID userId, UUID billId);
     
     @Query("SELECT sb FROM SavedBill sb JOIN FETCH sb.bill WHERE sb.userId = :userId ORDER BY sb.savedAt DESC")
     List<SavedBill> findByUserIdWithBillDetails(@Param("userId") UUID userId);

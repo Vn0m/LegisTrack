@@ -1,7 +1,7 @@
 package com.legistrack.app.model;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
@@ -25,7 +25,7 @@ public class AiSummary {
     private String modelUsed;
     
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    private OffsetDateTime createdAt;
     
     public AiSummary() {}
     
@@ -34,7 +34,7 @@ public class AiSummary {
         this.summaryText = summaryText;
         this.keyPoints = keyPoints;
         this.modelUsed = modelUsed;
-        this.createdAt = LocalDateTime.now();
+        this.createdAt = OffsetDateTime.now();
     }
     
     public UUID getId() { return id; }
@@ -52,6 +52,6 @@ public class AiSummary {
     public String getModelUsed() { return modelUsed; }
     public void setModelUsed(String modelUsed) { this.modelUsed = modelUsed; }
     
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public OffsetDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
 }

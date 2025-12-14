@@ -1,7 +1,7 @@
 package com.legistrack.app.model;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
@@ -15,13 +15,13 @@ public class Label {
     private String label;
     
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    private OffsetDateTime createdAt;
     
     public Label() {}
     
     public Label(String label) {
         this.label = label;
-        this.createdAt = LocalDateTime.now();
+        this.createdAt = OffsetDateTime.now();
     }
     
     public UUID getId() { return id; }
@@ -30,7 +30,7 @@ public class Label {
     public String getLabel() { return label; }
     public void setLabel(String label) { this.label = label; }
     
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public OffsetDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
 }
 

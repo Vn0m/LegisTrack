@@ -1,7 +1,7 @@
 package com.legistrack.app.model;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
@@ -36,18 +36,21 @@ public class Bill {
     private String status;
     
     @Column(name = "published_date")
-    private LocalDateTime publishedDate;
+    private OffsetDateTime publishedDate;
     
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    private OffsetDateTime createdAt;
     
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    private OffsetDateTime updatedAt;
+    
+    @Column(name = "content_embedding")
+    private float[] contentEmbedding;
     
     public Bill() {}
     
     public Bill(String basePrintNoStr, String title, String summary, String memo, 
-                String chamber, Integer year, String sponsorName, String status, LocalDateTime publishedDate) {
+                String chamber, Integer year, String sponsorName, String status, OffsetDateTime publishedDate) {
         this.basePrintNoStr = basePrintNoStr;
         this.title = title;
         this.summary = summary;
@@ -57,8 +60,9 @@ public class Bill {
         this.sponsorName = sponsorName;
         this.status = status;
         this.publishedDate = publishedDate;
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+        this.createdAt = OffsetDateTime.now();
+        this.updatedAt = OffsetDateTime.now();
+        this.contentEmbedding = new float[768];
     }
     
     public UUID getId() { return id; }
@@ -88,12 +92,15 @@ public class Bill {
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     
-    public LocalDateTime getPublishedDate() { return publishedDate; }
-    public void setPublishedDate(LocalDateTime publishedDate) { this.publishedDate = publishedDate; }
+    public OffsetDateTime getPublishedDate() { return publishedDate; }
+    public void setPublishedDate(OffsetDateTime publishedDate) { this.publishedDate = publishedDate; }
     
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public OffsetDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
     
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public OffsetDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(OffsetDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public float[] getContentEmbedding() { return contentEmbedding; }
+    public void setContentEmbedding(float[] contentEmbedding) { this.contentEmbedding = contentEmbedding; }
 }
