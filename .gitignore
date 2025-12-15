@@ -38,7 +38,6 @@ target/
 *.swo
 *~
 
-# Redis
 dump.rdb
 *.rdb
 

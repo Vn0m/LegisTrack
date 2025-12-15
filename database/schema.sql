@@ -3,11 +3,11 @@ CREATE TABLE bills (
     base_print_no_str VARCHAR(100) UNIQUE NOT NULL, 
     title TEXT NOT NULL,
     summary TEXT,
-    memo TEXT, -- For AI summarization
+    memo TEXT, 
     chamber VARCHAR(20) NOT NULL, 
     year INTEGER,
     sponsor_name VARCHAR(255), 
-    status VARCHAR(100), -- Current status
+    status VARCHAR(100),
     published_date TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

@@ -44,7 +44,7 @@ public class Bill {
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
     
-    @Column(name = "content_embedding")
+    @Column(name = "content_embedding", columnDefinition = "vector(768)")
     private float[] contentEmbedding;
     
     public Bill() {}
