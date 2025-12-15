@@ -1,5 +1,8 @@
 package com.legistrack.app.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.legistrack.app.model.SavedBill;
 import com.legistrack.app.service.SavedBillService;
 import com.legistrack.app.service.SupabaseService;
@@ -10,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/saved-bills")
@@ -22,77 +24,104 @@ public class SavedBillController {
     
     @Autowired
     private SavedBillService savedBillService;
+    
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @PostMapping("/save")
     public ResponseEntity<String> saveBill(@RequestHeader("Authorization") String authToken, 
-                                         @RequestBody Map<String, Object> body) {
+                                         @RequestBody Map<String, Object> body) throws Exception {
         try {
             UUID userId = supabaseService.validateUser(authToken);
             if (userId == null) {
-                return ResponseEntity.status(401).body("{\"error\": \"Unauthorized\"}");
+                ObjectNode error = objectMapper.createObjectNode();
+                error.put("error", "Unauthorized");
+                return ResponseEntity.status(401).body(objectMapper.writeValueAsString(error));
             }
 
             savedBillService.saveBill(userId, body);
-            return ResponseEntity.ok("{\"message\": \"Bill saved successfully\"}");
+            ObjectNode success = objectMapper.createObjectNode();
+            success.put("message", "Bill saved successfully");
+            return ResponseEntity.ok(objectMapper.writeValueAsString(success));
             
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body("{\"error\": \"" + e.getMessage() + "\"}");
+            ObjectNode error = objectMapper.createObjectNode();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(objectMapper.writeValueAsString(error));
         } catch (IllegalStateException e) {
-            return ResponseEntity.ok("{\"message\": \"" + e.getMessage() + "\"}");
+            ObjectNode error = objectMapper.createObjectNode();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(409).body(objectMapper.writeValueAsString(error));
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body("{\"error\": \"" + e.getMessage() + "\"}");
+            ObjectNode error = objectMapper.createObjectNode();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(500).body(objectMapper.writeValueAsString(error));
         }
     }
 
     @DeleteMapping("/unsave")
     public ResponseEntity<String> unsaveBill(@RequestHeader("Authorization") String authToken,
-                                            @RequestBody Map<String, Object> body) {
+                                            @RequestBody Map<String, Object> body) throws Exception {
         try {
             UUID userId = supabaseService.validateUser(authToken);
             if (userId == null) {
-                return ResponseEntity.status(401).body("{\"error\": \"Unauthorized\"}");
+                ObjectNode error = objectMapper.createObjectNode();
+                error.put("error", "Unauthorized");
+                return ResponseEntity.status(401).body(objectMapper.writeValueAsString(error));
             }
 
             String basePrintNoStr = body.get("basePrintNoStr") != null ? body.get("basePrintNoStr").toString() : null;
             savedBillService.unsaveBill(userId, basePrintNoStr);
             
-            return ResponseEntity.ok("{\"message\": \"Bill unsaved successfully\"}");
+            ObjectNode success = objectMapper.createObjectNode();
+            success.put("message", "Bill unsaved successfully");
+            return ResponseEntity.ok(objectMapper.writeValueAsString(success));
             
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body("{\"error\": \"" + e.getMessage() + "\"}");
+            ObjectNode error = objectMapper.createObjectNode();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(objectMapper.writeValueAsString(error));
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body("{\"error\": \"" + e.getMessage() + "\"}");
+            ObjectNode error = objectMapper.createObjectNode();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(500).body(objectMapper.writeValueAsString(error));
         }
     }
 
     @GetMapping("/my-bills")
-    public ResponseEntity<String> getMyBills(@RequestHeader("Authorization") String authToken) {
+    public ResponseEntity<String> getMyBills(@RequestHeader("Authorization") String authToken) throws Exception {
         try {
             UUID userId = supabaseService.validateUser(authToken);
             if (userId == null) {
-                return ResponseEntity.status(401).body("{\"error\": \"Unauthorized\"}");
+                ObjectNode error = objectMapper.createObjectNode();
+                error.put("error", "Unauthorized");
+                return ResponseEntity.status(401).body(objectMapper.writeValueAsString(error));
             }
 
             List<SavedBill> savedBills = savedBillService.getUserSavedBills(userId);
             
-            String billsJson = savedBills.stream()
-                .map(sb -> String.format(
-                    "{\"id\":\"%s\",\"basePrintNoStr\":\"%s\",\"title\":\"%s\",\"savedAt\":\"%s\",\"notes\":\"%s\"}",
-                    sb.getId(),
-                    sb.getBill().getBasePrintNoStr(),
-                    sb.getBill().getTitle(),
-                    sb.getSavedAt(),
-                    sb.getNotes() != null ? sb.getNotes() : ""
-                ))
-                .collect(Collectors.joining(","));
+            ArrayNode billsArray = objectMapper.createArrayNode();
+            for (SavedBill sb : savedBills) {
+                ObjectNode billNode = objectMapper.createObjectNode();
+                billNode.put("id", sb.getId().toString());
+                billNode.put("basePrintNoStr", sb.getBill().getBasePrintNoStr());
+                billNode.put("title", sb.getBill().getTitle());
+                billNode.put("savedAt", sb.getSavedAt().toString());
+                billNode.put("notes", sb.getNotes() != null ? sb.getNotes() : "");
+                billsArray.add(billNode);
+            }
             
-            return ResponseEntity.ok("{\"bills\": [" + billsJson + "]}");
+            ObjectNode response = objectMapper.createObjectNode();
+            response.set("bills", billsArray);
+            return ResponseEntity.ok(objectMapper.writeValueAsString(response));
             
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body("{\"error\": \"" + e.getMessage() + "\"}");
+            ObjectNode error = objectMapper.createObjectNode();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(500).body(objectMapper.writeValueAsString(error));
         }
     }
 }

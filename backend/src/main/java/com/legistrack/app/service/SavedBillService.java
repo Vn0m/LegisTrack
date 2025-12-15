@@ -5,6 +5,7 @@ import com.legistrack.app.model.SavedBill;
 import com.legistrack.app.repository.BillRepository;
 import com.legistrack.app.repository.SavedBillRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,32 +33,40 @@ public class SavedBillService {
             throw new IllegalArgumentException("basePrintNoStr is required");
         }
         
-        Optional<Bill> billOpt = billRepository.findByBasePrintNoStr(basePrintNoStr);
-        if (!billOpt.isPresent()) {
-            Bill newBill = new Bill();
-            newBill.setBasePrintNoStr(basePrintNoStr);
-            newBill.setTitle(getString(billData, "title", "Placeholder - To be fetched"));
-            newBill.setSummary(getString(billData, "summary"));
-            newBill.setMemo(getString(billData, "memo"));
-            newBill.setChamber(getString(billData, "chamber", "UNKNOWN"));
-            newBill.setYear(getInteger(billData, "year"));
-            newBill.setSponsorName(getString(billData, "sponsorName"));
-            newBill.setStatus(getString(billData, "status"));
-            newBill.setPublishedDate(OffsetDateTime.now());
-            newBill.setCreatedAt(OffsetDateTime.now());
-            newBill.setUpdatedAt(OffsetDateTime.now());
-            newBill.setContentEmbedding(new float[768]);
-            billOpt = Optional.of(billRepository.save(newBill));
-        }
-        
-        Bill bill = billOpt.get();
-        
-        if (savedBillRepository.existsByUserIdAndBill_Id(userId, bill.getId())) {
+        try {
+            Bill bill = billRepository.findByBasePrintNoStr(basePrintNoStr)
+                .orElseGet(() -> {
+                    Bill newBill = new Bill();
+                    newBill.setBasePrintNoStr(basePrintNoStr);
+                    newBill.setTitle(getString(billData, "title", "Placeholder - To be fetched"));
+                    newBill.setSummary(getString(billData, "summary"));
+                    newBill.setMemo(getString(billData, "memo"));
+                    newBill.setChamber(getString(billData, "chamber", "UNKNOWN"));
+                    newBill.setYear(getInteger(billData, "year"));
+                    newBill.setSponsorName(getString(billData, "sponsorName"));
+                    newBill.setStatus(getString(billData, "status"));
+                    newBill.setPublishedDate(OffsetDateTime.now());
+                    newBill.setCreatedAt(OffsetDateTime.now());
+                    newBill.setUpdatedAt(OffsetDateTime.now());
+                    newBill.setContentEmbedding(new float[768]);
+                    try {
+                        return billRepository.save(newBill);
+                    } catch (DataIntegrityViolationException e) {
+                        return billRepository.findByBasePrintNoStr(basePrintNoStr)
+                            .orElseThrow(() -> new RuntimeException("Failed to create or retrieve bill"));
+                    }
+                });
+            
+            if (savedBillRepository.existsByUserIdAndBill_Id(userId, bill.getId())) {
+                throw new IllegalStateException("Bill already saved");
+            }
+            
+            SavedBill savedBill = new SavedBill(userId, bill, notes);
+            return savedBillRepository.save(savedBill);
+            
+        } catch (DataIntegrityViolationException e) {
             throw new IllegalStateException("Bill already saved");
         }
-        
-        SavedBill savedBill = new SavedBill(userId, bill, notes);
-        return savedBillRepository.save(savedBill);
     }
 
     @Transactional
