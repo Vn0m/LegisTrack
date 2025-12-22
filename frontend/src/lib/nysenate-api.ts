@@ -1,3 +1,5 @@
+import { supabase } from './supabase';
+
 export type SearchParams = { q: string; year?: string };
 
 export async function searchBills(params: SearchParams) {
@@ -44,6 +46,56 @@ export async function summarizeBill(basePrintNoStr: string) {
   } catch (e) {
     throw new Error(text || 'Failed to parse response');
   }
+}
+
+export async function saveBill(basePrintNoStr: string, notes?: string) {
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session) {
+    throw new Error('Not authenticated');
+  }
+
+  const res = await fetch('/api/saved-bills/save', {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`
+    },
+    body: JSON.stringify({ basePrintNoStr, notes }),
+  });
+  
+  const text = await res.text();
+  
+  if (!res.ok) {
+    throw new Error(text || 'Failed to save bill');
+  }
+  
+  return text;
+}
+
+export async function unsaveBill(basePrintNoStr: string) {
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session) {
+    throw new Error('Not authenticated');
+  }
+
+  const res = await fetch('/api/saved-bills/unsave', {
+    method: 'DELETE',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`
+    },
+    body: JSON.stringify({ basePrintNoStr }),
+  });
+  
+  const text = await res.text();
+  
+  if (!res.ok) {
+    throw new Error(text || 'Failed to unsave bill');
+  }
+  
+  return text;
 }
 
 

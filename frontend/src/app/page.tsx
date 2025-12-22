@@ -11,10 +11,12 @@ export default function Home() {
   const items = (results?.result?.items || []).map((x: any) => x.result || x);
 
   return (
-    <main className="text-white p-6 space-y-6 min-h-screen">
-      <div className="text-center space-y-2">
+    <main className="bg-gray-950 text-white p-6 space-y-6 min-h-screen">
+      <div className="flex justify-between items-center">
+        <div className="text-center space-y-2 flex-1">
         <h1 className="text-2xl font-bold">LegisTrack</h1>
-        <p className="text-gray-400">Search NY State legislation, get AI summaries, and track bills.</p>
+          <p className="text-gray-400">Search NY State legislation, get AI summaries, and track bills.</p>
+        </div>
       </div>
       <div className="flex justify-center">
         <BillSearch onResults={setResults} />
