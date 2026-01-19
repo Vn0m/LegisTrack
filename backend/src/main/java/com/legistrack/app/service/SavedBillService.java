@@ -4,7 +4,6 @@ import com.legistrack.app.model.Bill;
 import com.legistrack.app.model.SavedBill;
 import com.legistrack.app.repository.BillRepository;
 import com.legistrack.app.repository.SavedBillRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,11 +17,13 @@ import java.util.UUID;
 @Service
 public class SavedBillService {
 
-    @Autowired
-    private BillRepository billRepository;
-    
-    @Autowired
-    private SavedBillRepository savedBillRepository;
+    private final BillRepository billRepository;
+    private final SavedBillRepository savedBillRepository;
+
+    public SavedBillService(BillRepository billRepository, SavedBillRepository savedBillRepository) {
+        this.billRepository = billRepository;
+        this.savedBillRepository = savedBillRepository;
+    }
 
     @Transactional
     public SavedBill saveBill(UUID userId, Map<String, Object> billData) {
@@ -48,7 +49,6 @@ public class SavedBillService {
                     newBill.setPublishedDate(OffsetDateTime.now());
                     newBill.setCreatedAt(OffsetDateTime.now());
                     newBill.setUpdatedAt(OffsetDateTime.now());
-                    newBill.setContentEmbedding(new float[768]);
                     try {
                         return billRepository.save(newBill);
                     } catch (DataIntegrityViolationException e) {
@@ -85,6 +85,12 @@ public class SavedBillService {
 
     public List<SavedBill> getUserSavedBills(UUID userId) {
         return savedBillRepository.findByUserIdWithBillDetails(userId);
+    }
+
+    public boolean isBillSaved(UUID userId, String basePrintNoStr) {
+        return billRepository.findByBasePrintNoStr(basePrintNoStr)
+            .map(bill -> savedBillRepository.existsByUserIdAndBill_Id(userId, bill.getId()))
+            .orElse(false);
     }
 
     private String getString(Map<String, Object> map, String key) {

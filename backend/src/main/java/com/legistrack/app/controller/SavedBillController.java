@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.legistrack.app.model.SavedBill;
 import com.legistrack.app.service.SavedBillService;
 import com.legistrack.app.service.SupabaseService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,14 +18,17 @@ import java.util.UUID;
 @CrossOrigin(origins = "*")
 public class SavedBillController {
 
-    @Autowired
-    private SupabaseService supabaseService;
-    
-    @Autowired
-    private SavedBillService savedBillService;
-    
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final SupabaseService supabaseService;
+    private final SavedBillService savedBillService;
+    private final ObjectMapper objectMapper;
+
+    public SavedBillController(SupabaseService supabaseService,
+                               SavedBillService savedBillService,
+                               ObjectMapper objectMapper) {
+        this.supabaseService = supabaseService;
+        this.savedBillService = savedBillService;
+        this.objectMapper = objectMapper;
+    }
 
     @PostMapping("/save")
     public ResponseEntity<String> saveBill(@RequestHeader("Authorization") String authToken, 
@@ -123,5 +125,17 @@ public class SavedBillController {
             error.put("error", e.getMessage());
             return ResponseEntity.status(500).body(objectMapper.writeValueAsString(error));
         }
+    }
+
+    @GetMapping("/check")
+    public ResponseEntity<String> checkIfSaved(@RequestHeader("Authorization") String authToken,
+                                               @RequestParam String basePrintNoStr) throws Exception {
+        UUID userId = supabaseService.validateUser(authToken);
+        if (userId == null) {
+            return ResponseEntity.status(401).body("{\"error\":\"Unauthorized\"}");
+        }
+
+        boolean isSaved = savedBillService.isBillSaved(userId, basePrintNoStr);
+        return ResponseEntity.ok("{\"saved\":" + isSaved + "}");
     }
 }

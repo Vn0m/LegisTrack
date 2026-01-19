@@ -62,7 +62,7 @@ public class Bill {
         this.publishedDate = publishedDate;
         this.createdAt = OffsetDateTime.now();
         this.updatedAt = OffsetDateTime.now();
-        this.contentEmbedding = new float[768];
+        this.contentEmbedding = null;
     }
     
     public UUID getId() { return id; }
