@@ -98,4 +98,33 @@ export async function unsaveBill(basePrintNoStr: string) {
   return text;
 }
 
+export async function checkIfSaved(basePrintNoStr: string): Promise<boolean> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return false;
 
+  const res = await fetch(`/api/saved-bills/check?basePrintNoStr=${encodeURIComponent(basePrintNoStr)}`, {
+    headers: { 'Authorization': `Bearer ${session.access_token}` }
+  });
+
+  if (!res.ok) return false;
+  const data = await res.json();
+  return data.saved === true;
+}
+
+export async function getMyBills() {
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session) {
+    throw new Error('Not authenticated');
+  }
+
+  const res = await fetch('/api/saved-bills/my-bills', {
+    headers: { 'Authorization': `Bearer ${session.access_token}` }
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to fetch saved bills');
+  }
+
+  return res.json();
+}
