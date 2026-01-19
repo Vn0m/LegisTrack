@@ -2,6 +2,7 @@
 import BillSearch from '../components/BillSearch';
 import BillCard from '../components/BillCard';
 import BillModal from '../components/BillModal';
+import Dashboard from '../components/Dashboard';
 import { useState } from 'react';
 
 export default function Home() {
@@ -11,35 +12,49 @@ export default function Home() {
   const items = (results?.result?.items || []).map((x: any) => x.result || x);
 
   return (
-    <main className="bg-gray-950 text-white p-6 space-y-6 min-h-screen">
-      <div className="flex justify-between items-center">
-        <div className="text-center space-y-2 flex-1">
-        <h1 className="text-2xl font-bold">LegisTrack</h1>
-          <p className="text-gray-400">Search NY State legislation, get AI summaries, and track bills.</p>
-        </div>
-      </div>
-      <div className="flex justify-center">
+    <main className="px-6 py-8">
+      <p className="text-[var(--text-muted)] text-center text-sm mb-8">
+        Search NY State legislation, get AI summaries, and track bills.
+      </p>
+      
+      <div className="flex justify-center mb-10">
         <BillSearch onResults={setResults} />
       </div>
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {items.map((it: any, idx: number) => {
-          const title = it.title || it.summary || "Bill";
-          const base = it.basePrintNoStr || (it.basePrintNo && it.session ? `${it.basePrintNo}-${it.session}` : "");
-          const chamber = it.billType?.chamber || it.chamber;
-          
-          return (
-            <BillCard
-              key={idx}
-              title={title}
-              basePrintNoStr={base}
-              summary={it.summary}
-              chamber={chamber}
-              onOpen={setOpen}
-            />
-          );
-        })}
+
+      <div className="flex gap-10">
+        <div className="flex-1 min-w-0">
+          {items.length > 0 ? (
+            <div className="divide-y divide-[var(--border-muted)]">
+              {items.map((it: any, idx: number) => {
+                const title = it.title || it.summary || "Bill";
+                const base = it.basePrintNoStr || (it.basePrintNo && it.session ? `${it.basePrintNo}-${it.session}` : "");
+                const chamber = it.billType?.chamber || it.chamber;
+                
+                return (
+                  <BillCard
+                    key={idx}
+                    title={title}
+                    basePrintNoStr={base}
+                    summary={it.summary}
+                    chamber={chamber}
+                    onOpen={setOpen}
+                  />
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-16 text-[var(--text-muted)]">
+              Search for bills to get started
+            </div>
+          )}
+        </div>
+        
+        <div className="w-72 shrink-0 hidden lg:block">
+          <Dashboard onOpenBill={setOpen} />
+        </div>
       </div>
-      <BillModal basePrintNoStr={open} onClose={() => setOpen(null)} />
+
+      <BillModal key={open || 'closed'} basePrintNoStr={open} onClose={() => setOpen(null)} />
     </main>
   );
 }

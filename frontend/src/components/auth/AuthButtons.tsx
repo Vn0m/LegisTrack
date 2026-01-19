@@ -32,7 +32,7 @@ export default function AuthButtons() {
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        setMessage('Check your email to confirm your account!');
+        setMessage('Check your email to confirm your account.');
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -53,17 +53,20 @@ export default function AuthButtons() {
 
   return (
     <>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
         {userEmail ? (
           <>
-            <span className="text-sm text-gray-300">{userEmail}</span>
-            <button className="text-sm text-blue-400 hover:text-blue-300 transition-colors" onClick={signOut}>
+            <span className="text-sm text-[var(--text-muted)]">{userEmail}</span>
+            <button 
+              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer" 
+              onClick={signOut}
+            >
               Sign out
             </button>
           </>
         ) : (
           <button 
-            className="text-sm text-blue-400 hover:text-blue-300 transition-colors" 
+            className="text-sm text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors cursor-pointer" 
             onClick={() => setShowAuthModal(true)}
           >
             Sign in
@@ -72,60 +75,71 @@ export default function AuthButtons() {
       </div>
 
       {showAuthModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowAuthModal(false)}>
-          <div className="bg-gray-900 rounded-lg p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-white">{isSignUp ? 'Sign Up' : 'Sign In'}</h2>
-              <button onClick={() => setShowAuthModal(false)} className="text-gray-400 hover:text-white">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        <div 
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" 
+          onClick={() => setShowAuthModal(false)}
+        >
+          <div 
+            className="bg-[var(--surface)] border border-[var(--border)] p-8 max-w-sm w-full mx-4" 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="font-serif text-xl font-semibold text-[var(--text-primary)]">
+                {isSignUp ? 'Create Account' : 'Sign In'}
+              </h2>
+              <button 
+                onClick={() => setShowAuthModal(false)} 
+                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
             <form onSubmit={handleAuth} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
+                <label className="block text-xs uppercase tracking-wide text-[var(--text-muted)] mb-2">Email</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                  className="w-full px-4 py-2.5 bg-transparent border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] transition-colors"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Password</label>
+                <label className="block text-xs uppercase tracking-wide text-[var(--text-muted)] mb-2">Password</label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                  className="w-full px-4 py-2.5 bg-transparent border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] transition-colors"
                   required
                   minLength={6}
                 />
               </div>
 
               {message && (
-                <div className={`text-sm ${message.includes('error') || message.includes('failed') ? 'text-red-400' : 'text-green-400'}`}>
+                <p className={`text-sm ${message.includes('error') || message.includes('failed') ? 'text-[var(--assembly)]' : 'text-[var(--senate)]'}`}>
                   {message}
-                </div>
+                </p>
               )}
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
+                className="w-full border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--background)] py-2.5 text-sm font-medium transition-colors disabled:opacity-50 cursor-pointer"
               >
-                {loading ? 'Loading...' : (isSignUp ? 'Sign Up' : 'Sign In')}
+                {loading ? '...' : (isSignUp ? 'Create Account' : 'Sign In')}
               </button>
 
-              <div className="text-center">
+              <div className="text-center pt-2">
                 <button
                   type="button"
                   onClick={() => setIsSignUp(!isSignUp)}
-                  className="text-sm text-blue-400 hover:text-blue-300"
+                  className="text-sm text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
                 >
                   {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
                 </button>
@@ -137,6 +151,3 @@ export default function AuthButtons() {
     </>
   );
 }
-
-
-
