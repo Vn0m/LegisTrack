@@ -16,11 +16,14 @@ import java.util.Optional;
 public class AiService {
     private final String apiKey;
     private final CacheService cacheService;
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper;
 
-    public AiService(@Value("${app.huggingface.apiKey}") String apiKey, CacheService cacheService) {
+    public AiService(@Value("${app.huggingface.apiKey}") String apiKey,
+                     CacheService cacheService,
+                     ObjectMapper mapper) {
         this.apiKey = apiKey;
         this.cacheService = cacheService;
+        this.mapper = mapper;
     }
 
     public String summarizeMemo(String basePrintNoStr, String memoText) throws IOException {

@@ -15,13 +15,17 @@ import java.util.UUID;
 @Service
 public class SupabaseService {
 
-    @Value("${app.supabase.url}")
-    private String supabaseUrl;
+    private final String supabaseUrl;
+    private final String serviceKey;
+    private final ObjectMapper mapper;
 
-    @Value("${app.supabase.serviceKey}")
-    private String serviceKey;
-
-    private final ObjectMapper mapper = new ObjectMapper();
+    public SupabaseService(@Value("${app.supabase.url}") String supabaseUrl,
+                           @Value("${app.supabase.serviceKey}") String serviceKey,
+                           ObjectMapper mapper) {
+        this.supabaseUrl = supabaseUrl;
+        this.serviceKey = serviceKey;
+        this.mapper = mapper;
+    }
 
     public UUID validateUser(String authToken) throws IOException {
         if (authToken == null || !authToken.startsWith("Bearer ")) {
