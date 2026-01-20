@@ -98,17 +98,43 @@ export async function unsaveBill(basePrintNoStr: string) {
   return text;
 }
 
-export async function checkIfSaved(basePrintNoStr: string): Promise<boolean> {
+export type SavedStatus = { saved: boolean; notes: string };
+
+export async function checkIfSaved(basePrintNoStr: string): Promise<SavedStatus> {
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return false;
+  if (!session) return { saved: false, notes: '' };
 
   const res = await fetch(`/api/saved-bills/check?basePrintNoStr=${encodeURIComponent(basePrintNoStr)}`, {
     headers: { 'Authorization': `Bearer ${session.access_token}` }
   });
 
-  if (!res.ok) return false;
+  if (!res.ok) return { saved: false, notes: '' };
   const data = await res.json();
-  return data.saved === true;
+  return { saved: data.saved === true, notes: data.notes || '' };
+}
+
+export async function updateNotes(basePrintNoStr: string, notes: string) {
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session) {
+    throw new Error('Not authenticated');
+  }
+
+  const res = await fetch('/api/saved-bills/notes', {
+    method: 'PATCH',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`
+    },
+    body: JSON.stringify({ basePrintNoStr, notes }),
+  });
+  
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || 'Failed to update notes');
+  }
+  
+  return res.json();
 }
 
 export async function getMyBills() {

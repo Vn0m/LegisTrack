@@ -21,6 +21,7 @@ import java.time.OffsetDateTime;
 import java.util.Optional;
 
 @Service
+@SuppressWarnings("null")
 public class BillService {
     private final String baseUrl;
     private final String apiKey;

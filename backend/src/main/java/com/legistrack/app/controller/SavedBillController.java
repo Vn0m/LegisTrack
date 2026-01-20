@@ -135,7 +135,49 @@ public class SavedBillController {
             return ResponseEntity.status(401).body("{\"error\":\"Unauthorized\"}");
         }
 
-        boolean isSaved = savedBillService.isBillSaved(userId, basePrintNoStr);
-        return ResponseEntity.ok("{\"saved\":" + isSaved + "}");
+        return savedBillService.getSavedBill(userId, basePrintNoStr)
+            .map(savedBill -> {
+                ObjectNode response = objectMapper.createObjectNode();
+                response.put("saved", true);
+                response.put("notes", savedBill.getNotes() != null ? savedBill.getNotes() : "");
+                try {
+                    return ResponseEntity.ok(objectMapper.writeValueAsString(response));
+                } catch (Exception e) {
+                    return ResponseEntity.ok("{\"saved\":true,\"notes\":\"\"}");
+                }
+            })
+            .orElse(ResponseEntity.ok("{\"saved\":false,\"notes\":\"\"}"));
+    }
+
+    @PatchMapping("/notes")
+    public ResponseEntity<String> updateNotes(@RequestHeader("Authorization") String authToken,
+                                              @RequestBody Map<String, Object> body) throws Exception {
+        try {
+            UUID userId = supabaseService.validateUser(authToken);
+            if (userId == null) {
+                ObjectNode error = objectMapper.createObjectNode();
+                error.put("error", "Unauthorized");
+                return ResponseEntity.status(401).body(objectMapper.writeValueAsString(error));
+            }
+
+            String basePrintNoStr = body.get("basePrintNoStr") != null ? body.get("basePrintNoStr").toString() : null;
+            String notes = body.get("notes") != null ? body.get("notes").toString() : "";
+            
+            savedBillService.updateNotes(userId, basePrintNoStr, notes);
+            
+            ObjectNode success = objectMapper.createObjectNode();
+            success.put("message", "Notes updated successfully");
+            return ResponseEntity.ok(objectMapper.writeValueAsString(success));
+            
+        } catch (IllegalArgumentException e) {
+            ObjectNode error = objectMapper.createObjectNode();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(objectMapper.writeValueAsString(error));
+        } catch (Exception e) {
+            e.printStackTrace();
+            ObjectNode error = objectMapper.createObjectNode();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(500).body(objectMapper.writeValueAsString(error));
+        }
     }
 }

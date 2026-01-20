@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { getBill, summarizeBill, saveBill, unsaveBill, checkIfSaved } from '../lib/nysenate-api';
+import { useEffect, useState, useRef } from 'react';
+import { getBill, summarizeBill, saveBill, unsaveBill, checkIfSaved, updateNotes } from '../lib/nysenate-api';
 import { supabase } from '../lib/supabase';
 
 type Props = { basePrintNoStr: string | null; onClose: () => void };
@@ -13,22 +13,28 @@ export default function BillModal({ basePrintNoStr, onClose }: Props) {
   const [user, setUser] = useState<any>(null);
   const [isSaved, setIsSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [notes, setNotes] = useState('');
+  const [savingNotes, setSavingNotes] = useState(false);
+  const notesRef = useRef(notes);
+  notesRef.current = notes;
 
   useEffect(() => {
     setSummary(null);
     setBill(null);
     setIsSaved(false);
+    setNotes('');
     
     if (!basePrintNoStr) return;
     (async () => {
       setLoading(true);
       try {
-        const [data, saved] = await Promise.all([
+        const [data, savedStatus] = await Promise.all([
           getBill(basePrintNoStr),
           checkIfSaved(basePrintNoStr)
         ]);
         setBill(data);
-        setIsSaved(saved);
+        setIsSaved(savedStatus.saved);
+        setNotes(savedStatus.notes);
       } finally {
         setLoading(false);
       }
@@ -70,6 +76,7 @@ export default function BillModal({ basePrintNoStr, onClose }: Props) {
       if (isSaved) {
         await unsaveBill(basePrintNoStr);
         setIsSaved(false);
+        setNotes('');
       } else {
         await saveBill(basePrintNoStr);
         setIsSaved(true);
@@ -79,6 +86,18 @@ export default function BillModal({ basePrintNoStr, onClose }: Props) {
       alert(err.message || 'Failed to save bill');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleNotesBlur = async () => {
+    if (!basePrintNoStr || !isSaved) return;
+    setSavingNotes(true);
+    try {
+      await updateNotes(basePrintNoStr, notesRef.current);
+    } catch (err: any) {
+      console.error('Failed to save notes:', err);
+    } finally {
+      setSavingNotes(false);
     }
   };
 
@@ -204,6 +223,27 @@ export default function BillModal({ basePrintNoStr, onClose }: Props) {
                   </button>
                 )}
               </div>
+
+              {isSaved && user && (
+                <div className="pt-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs uppercase tracking-wide text-[var(--text-muted)]">
+                      Your Notes
+                    </label>
+                    {savingNotes && (
+                      <span className="text-xs text-[var(--text-muted)]">Saving...</span>
+                    )}
+                  </div>
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    onBlur={handleNotesBlur}
+                    placeholder="Add personal notes about this bill..."
+                    className="w-full bg-transparent border border-[var(--border)] px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] transition-colors resize-none"
+                    rows={3}
+                  />
+                </div>
+              )}
               
               {summary && (
                 summary.startsWith('Error:') ? (

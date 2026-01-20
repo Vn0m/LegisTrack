@@ -93,6 +93,27 @@ public class SavedBillService {
             .orElse(false);
     }
 
+    public Optional<SavedBill> getSavedBill(UUID userId, String basePrintNoStr) {
+        return billRepository.findByBasePrintNoStr(basePrintNoStr)
+            .flatMap(bill -> savedBillRepository.findByUserIdAndBill_Id(userId, bill.getId()));
+    }
+
+    @Transactional
+    public void updateNotes(UUID userId, String basePrintNoStr, String notes) {
+        if (basePrintNoStr == null) {
+            throw new IllegalArgumentException("basePrintNoStr is required");
+        }
+        
+        Bill bill = billRepository.findByBasePrintNoStr(basePrintNoStr)
+            .orElseThrow(() -> new IllegalArgumentException("Bill not found"));
+        
+        SavedBill savedBill = savedBillRepository.findByUserIdAndBill_Id(userId, bill.getId())
+            .orElseThrow(() -> new IllegalArgumentException("Saved bill not found"));
+        
+        savedBill.setNotes(notes);
+        savedBillRepository.save(savedBill);
+    }
+
     private String getString(Map<String, Object> map, String key) {
         Object value = map.get(key);
         return value != null ? value.toString() : null;
