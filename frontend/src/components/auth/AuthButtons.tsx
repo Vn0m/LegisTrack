@@ -54,8 +54,8 @@ export default function AuthButtons() {
   return (
     <>
       <div className="flex items-center gap-4">
-        {userEmail ? (
-          <>
+      {userEmail ? (
+        <>
             <span className="text-sm text-[var(--text-muted)]">{userEmail}</span>
             <button 
               className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer" 
@@ -63,8 +63,8 @@ export default function AuthButtons() {
             >
               Sign out
             </button>
-          </>
-        ) : (
+        </>
+      ) : (
           <button 
             className="text-sm text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors cursor-pointer" 
             onClick={() => setShowAuthModal(true)}

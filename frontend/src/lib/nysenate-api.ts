@@ -118,7 +118,7 @@ export async function updateNotes(basePrintNoStr: string, notes: string) {
   
   if (!session) {
     throw new Error('Not authenticated');
-  }
+}
 
   const res = await fetch('/api/saved-bills/notes', {
     method: 'PATCH',

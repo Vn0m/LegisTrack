@@ -32,7 +32,7 @@ export default function RootLayout({
               <span className="font-serif text-xl font-semibold tracking-tight">LegisTrack</span>
               <span className="text-[var(--text-muted)] text-xs uppercase tracking-widest hidden sm:inline">NY Legislature</span>
             </div>
-            <AuthHeaderClient />
+          <AuthHeaderClient />
           </div>
         </header>
         <div className="max-w-6xl mx-auto w-full">{children}</div>

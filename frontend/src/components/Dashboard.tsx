@@ -93,7 +93,7 @@ export default function Dashboard({ onOpenBill }: Props) {
               </p>
             </button>
           ))}
-        </div>
+    </div>
       )}
     </aside>
   );
