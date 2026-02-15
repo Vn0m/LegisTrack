@@ -63,6 +63,21 @@ CREATE INDEX ON labels (label);
 CREATE INDEX ON bills USING gin (title gin_trgm_ops);
 CREATE INDEX ON bills USING gin (summary gin_trgm_ops);
 
+CREATE TABLE notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    bill_id UUID NOT NULL REFERENCES bills(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL,
+    old_status VARCHAR(100),
+    new_status VARCHAR(100),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    sent_at TIMESTAMP WITH TIME ZONE,
+    processed BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE INDEX ON notifications (user_id);
+CREATE INDEX ON notifications (processed);
+CREATE INDEX ON notifications (created_at DESC);
 
 ALTER TABLE saved_bills ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Bills are publicly readable" ON bills FOR SELECT USING (true);
