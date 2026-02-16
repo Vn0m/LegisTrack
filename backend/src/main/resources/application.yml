@@ -17,8 +17,16 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
-  redis:
-    url: ${REDIS_URL}
+  data:
+    redis:
+      url: ${REDIS_URL}
+  cloud:
+    aws:
+      region:
+        static: ${AWS_REGION}
+      credentials:
+        access-key: ${AWS_ACCESS_KEY_ID}
+        secret-key: ${AWS_SECRET_ACCESS_KEY}
 
 app:
   nysenate:
@@ -29,6 +37,8 @@ app:
   supabase:
     url: ${SUPABASE_URL}
     serviceKey: ${SUPABASE_SERVICE_ROLE_KEY}
+  aws:
+    sqs-queue-url: ${SQS_QUEUE_URL}
 
 logging:
   level:
