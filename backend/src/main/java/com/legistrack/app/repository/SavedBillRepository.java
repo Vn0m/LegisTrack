@@ -1,5 +1,6 @@
 package com.legistrack.app.repository;
 
+import com.legistrack.app.model.Bill;
 import com.legistrack.app.model.SavedBill;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -15,6 +16,8 @@ public interface SavedBillRepository extends JpaRepository<SavedBill, UUID> {
     
     List<SavedBill> findByUserId(UUID userId);
     
+    List<SavedBill> findByBill(Bill bill);
+
     Optional<SavedBill> findByUserIdAndBill_Id(UUID userId, UUID billId);
     
     boolean existsByUserIdAndBill_Id(UUID userId, UUID billId);
