@@ -113,6 +113,20 @@ public class BillService {
         return getJson(url);
     }
 
+    /**
+     * Fetch fresh bill status directly from NY Senate API, bypassing cache and DB.
+     * Used by the scheduler to detect status changes.
+     */
+    public String fetchFreshBillStatus(String year, String billId) throws IOException {
+        JsonNode apiResult = getBillFromApi(year, billId);
+        JsonNode result = apiResult.path("result");
+        JsonNode statusNode = result.path("status").path("statusDesc");
+        if (!statusNode.isMissingNode()) {
+            return statusNode.asText();
+        }
+        return null;
+    }
+
     private JsonNode getBillFromApi(String year, String billId) throws IOException {
         String url = baseUrl + "bills/" + encode(year) + "/" + encode(billId) + "?key=" + apiKey + "&view=with_refs";
         return getJson(url);
