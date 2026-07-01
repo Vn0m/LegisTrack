@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from 'react';
-import { getBill, summarizeBill, saveBill, unsaveBill, checkIfSaved, updateNotes } from '../lib/nysenate-api';
+import { getBill, summarizeBill, saveBill, unsaveBill, checkIfSaved, updateNotes, getBillLabels, getLabels, addLabelToBill, removeLabelFromBill, createLabel, LabelInfo } from '../lib/nysenate-api';
 import { supabase } from '../lib/supabase';
 
 type Props = { basePrintNoStr: string | null; onClose: () => void };
@@ -17,24 +17,35 @@ export default function BillModal({ basePrintNoStr, onClose }: Props) {
   const [savingNotes, setSavingNotes] = useState(false);
   const notesRef = useRef(notes);
   notesRef.current = notes;
+  const [billLabels, setBillLabels] = useState<LabelInfo[]>([]);
+  const [allLabels, setAllLabels] = useState<LabelInfo[]>([]);
+  const [showLabelPicker, setShowLabelPicker] = useState(false);
+  const [newLabelText, setNewLabelText] = useState('');
 
   useEffect(() => {
     setSummary(null);
     setBill(null);
     setIsSaved(false);
     setNotes('');
-    
+    setBillLabels([]);
+    setShowLabelPicker(false);
+    setNewLabelText('');
+
     if (!basePrintNoStr) return;
     (async () => {
       setLoading(true);
       try {
-        const [data, savedStatus] = await Promise.all([
+        const [data, savedStatus, labelsRes, allLabelsRes] = await Promise.all([
           getBill(basePrintNoStr),
-          checkIfSaved(basePrintNoStr)
+          checkIfSaved(basePrintNoStr),
+          getBillLabels(basePrintNoStr),
+          getLabels(),
         ]);
         setBill(data);
         setIsSaved(savedStatus.saved);
         setNotes(savedStatus.notes);
+        setBillLabels(labelsRes.labels);
+        setAllLabels(allLabelsRes.labels);
       } finally {
         setLoading(false);
       }
@@ -99,6 +110,29 @@ export default function BillModal({ basePrintNoStr, onClose }: Props) {
     } finally {
       setSavingNotes(false);
     }
+  };
+
+  const handleAddLabel = async (labelId: string) => {
+    if (!basePrintNoStr) return;
+    await addLabelToBill(basePrintNoStr, labelId);
+    const added = allLabels.find(l => l.id === labelId);
+    if (added) setBillLabels(prev => [...prev, added]);
+  };
+
+  const handleRemoveLabel = async (labelId: string) => {
+    if (!basePrintNoStr) return;
+    await removeLabelFromBill(basePrintNoStr, labelId);
+    setBillLabels(prev => prev.filter(l => l.id !== labelId));
+  };
+
+  const handleCreateLabel = async () => {
+    const text = newLabelText.trim();
+    if (!text || !basePrintNoStr) return;
+    const newLabel = await createLabel(text);
+    setAllLabels(prev => [...prev, newLabel]);
+    await addLabelToBill(basePrintNoStr, newLabel.id);
+    setBillLabels(prev => [...prev, newLabel]);
+    setNewLabelText('');
   };
 
   if (!basePrintNoStr) return null;
@@ -245,6 +279,63 @@ export default function BillModal({ basePrintNoStr, onClose }: Props) {
                 </div>
               )}
               
+              <div className="pt-1">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs uppercase tracking-wide text-[var(--text-muted)]">Labels</span>
+                  {user && (
+                    <button
+                      onClick={() => setShowLabelPicker(prev => !prev)}
+                      className="text-xs text-[var(--accent)] hover:underline cursor-pointer"
+                    >
+                      {showLabelPicker ? 'Done' : 'Edit'}
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {billLabels.map(l => (
+                    <span key={l.id} className="flex items-center gap-1 px-2 py-0.5 bg-[var(--background)] border border-[var(--border)] text-xs text-[var(--text-secondary)]">
+                      {l.label}
+                      {user && showLabelPicker && (
+                        <button onClick={() => handleRemoveLabel(l.id)} className="text-[var(--text-muted)] hover:text-[var(--accent)] cursor-pointer leading-none">×</button>
+                      )}
+                    </span>
+                  ))}
+                  {billLabels.length === 0 && !showLabelPicker && (
+                    <span className="text-xs text-[var(--text-muted)]">None</span>
+                  )}
+                </div>
+                {user && showLabelPicker && (
+                  <div className="mt-2 space-y-2">
+                    <div className="flex flex-wrap gap-1.5">
+                      {allLabels.filter(l => !billLabels.find(bl => bl.id === l.id)).map(l => (
+                        <button
+                          key={l.id}
+                          onClick={() => handleAddLabel(l.id)}
+                          className="px-2 py-0.5 border border-dashed border-[var(--border)] text-xs text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] cursor-pointer transition-colors"
+                        >
+                          + {l.label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        value={newLabelText}
+                        onChange={e => setNewLabelText(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleCreateLabel()}
+                        placeholder="New label..."
+                        className="flex-1 bg-transparent border border-[var(--border)] px-2 py-1 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
+                      />
+                      <button
+                        onClick={handleCreateLabel}
+                        className="px-3 py-1 text-xs border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--background)] transition-colors cursor-pointer"
+                      >
+                        Create
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {summary && (
                 summary.startsWith('Error:') ? (
                   <div className="border-l-2 border-[var(--accent-muted)] pl-4 py-2">
