@@ -9,7 +9,19 @@ export default function Home() {
   const [results, setResults] = useState<any>(null);
   const [open, setOpen] = useState<string | null>(null);
 
-  const items = (results?.result?.items || []).map((x: any) => x.result || x);
+  let items: any[];
+  if (results !== null && (results.apiResults !== undefined || results.results !== undefined)) {
+    const seen = new Set<string>();
+    items = [...(results.apiResults || []), ...(results.localResults || []), ...(results.results || [])]
+      .filter((item: any) => {
+        const key = item.basePrintNoStr;
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+  } else {
+    items = (results?.result?.items || []).map((x: any) => x.result || x);
+  }
 
   return (
     <main className="px-6 py-8">

@@ -1,13 +1,30 @@
 import { supabase } from './supabase';
 
-export type SearchParams = { q: string; year?: string };
+export type SearchParams = {
+  q: string;
+  year?: string;
+  chamber?: string;
+  status?: string;
+  committee?: string;
+};
 
 export async function searchBills(params: SearchParams) {
   const url = new URL('/api/bills/search', window.location.origin);
   url.searchParams.set('q', params.q);
   if (params.year) url.searchParams.set('year', params.year);
+  if (params.chamber) url.searchParams.set('chamber', params.chamber);
+  if (params.status) url.searchParams.set('status', params.status);
+  if (params.committee) url.searchParams.set('committee', params.committee);
   const res = await fetch(url.toString());
   if (!res.ok) throw new Error('Failed to search bills');
+  return res.json();
+}
+
+export async function semanticSearchBills(q: string) {
+  const url = new URL('/api/bills/semantic-search', window.location.origin);
+  url.searchParams.set('q', q);
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error('Semantic search failed');
   return res.json();
 }
 
@@ -139,18 +156,107 @@ export async function updateNotes(basePrintNoStr: string, notes: string) {
 
 export async function getMyBills() {
   const { data: { session } } = await supabase.auth.getSession();
-  
-  if (!session) {
-    throw new Error('Not authenticated');
-  }
+  if (!session) throw new Error('Not authenticated');
 
   const res = await fetch('/api/saved-bills/my-bills', {
-    headers: { 'Authorization': `Bearer ${session.access_token}` }
+    headers: { 'Authorization': `Bearer ${session.access_token}` },
   });
+  if (!res.ok) throw new Error('Failed to fetch saved bills');
+  const data = await res.json();
 
-  if (!res.ok) {
-    throw new Error('Failed to fetch saved bills');
-  }
+  const billsWithLabels = await Promise.all(
+    data.bills.map(async (bill: any) => {
+      const labelsData = await getBillLabels(bill.basePrintNoStr);
+      return { ...bill, labels: labelsData.labels };
+    })
+  );
+  return { bills: billsWithLabels };
+}
 
+// ── Labels ────────────────────────────────────────────────────────────────────
+
+export type LabelInfo = { id: string; label: string };
+
+export async function getLabels(): Promise<{ labels: LabelInfo[] }> {
+  const res = await fetch('/api/labels');
+  if (!res.ok) throw new Error('Failed to fetch labels');
   return res.json();
+}
+
+export async function createLabel(label: string): Promise<LabelInfo> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Not authenticated');
+  const res = await fetch('/api/labels', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+    body: JSON.stringify({ label }),
+  });
+  if (!res.ok) throw new Error('Failed to create label');
+  return res.json();
+}
+
+export async function getBillLabels(basePrintNoStr: string): Promise<{ labels: LabelInfo[] }> {
+  const res = await fetch(`/api/labels/bill/${encodeURIComponent(basePrintNoStr)}`);
+  if (!res.ok) return { labels: [] };
+  return res.json();
+}
+
+export async function addLabelToBill(basePrintNoStr: string, labelId: string): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Not authenticated');
+  const res = await fetch(`/api/labels/bill/${encodeURIComponent(basePrintNoStr)}/${labelId}`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${session.access_token}` },
+  });
+  if (!res.ok) throw new Error('Failed to add label');
+}
+
+export async function removeLabelFromBill(basePrintNoStr: string, labelId: string): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Not authenticated');
+  const res = await fetch(`/api/labels/bill/${encodeURIComponent(basePrintNoStr)}/${labelId}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${session.access_token}` },
+  });
+  if (!res.ok) throw new Error('Failed to remove label');
+}
+
+// ── Notifications ─────────────────────────────────────────────────────────────
+
+export type NotificationItem = {
+  id: string;
+  basePrintNoStr: string;
+  billTitle: string;
+  oldStatus: string | null;
+  newStatus: string;
+  createdAt: string;
+  processed: boolean;
+};
+
+export async function getNotifications(): Promise<{ notifications: NotificationItem[]; unreadCount: number }> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return { notifications: [], unreadCount: 0 };
+  const res = await fetch('/api/notifications', {
+    headers: { 'Authorization': `Bearer ${session.access_token}` },
+  });
+  if (!res.ok) return { notifications: [], unreadCount: 0 };
+  return res.json();
+}
+
+export async function markNotificationRead(id: string): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return;
+  await fetch(`/api/notifications/${id}`, {
+    method: 'PUT',
+    headers: { 'Authorization': `Bearer ${session.access_token}` },
+  });
+}
+
+export async function markAllNotificationsRead(): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return;
+  await fetch('/api/notifications/read-all', {
+    method: 'PUT',
+    headers: { 'Authorization': `Bearer ${session.access_token}` },
+  });
 }
