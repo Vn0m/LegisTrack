@@ -2,6 +2,7 @@ package com.legistrack.app.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
@@ -18,6 +19,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -28,28 +30,98 @@ public class BillService {
     private final CacheService cacheService;
     private final ObjectMapper mapper;
     private final BillRepository billRepository;
+    private final BillEmbeddingService embeddingService;
 
     public BillService(@Value("${app.nysenate.baseUrl}") String baseUrl,
                        @Value("${app.nysenate.apiKey}") String apiKey,
                        CacheService cacheService,
                        BillRepository billRepository,
-                       ObjectMapper mapper) {
+                       ObjectMapper mapper,
+                       BillEmbeddingService embeddingService) {
         this.baseUrl = baseUrl;
         this.apiKey = apiKey;
         this.cacheService = cacheService;
         this.billRepository = billRepository;
         this.mapper = mapper;
+        this.embeddingService = embeddingService;
     }
 
-    public JsonNode search(String query, String year) throws IOException {
-        String cacheKey = "search:" + query + ":" + (year == null ? "" : year);
-        Optional<String> cached = cacheService.get(cacheKey);
-        if (cached.isPresent()) {
-            return mapper.readTree(cached.get());
+    public JsonNode search(String query, String year, String chamber, String status, String committee) throws IOException {
+        Integer yearInt = parseYear(year);
+        // Only a validated year ever reaches the external API; anything invalid is dropped.
+        String apiYear = yearInt != null ? String.valueOf(yearInt) : null;
+
+        // API results (cached when no extra filters)
+        String cacheKey = "search:" + query + ":" + (apiYear == null ? "" : apiYear);
+        JsonNode apiNode;
+        if (chamber == null && status == null && committee == null) {
+            Optional<String> cached = cacheService.get(cacheKey);
+            if (cached.isPresent()) {
+                apiNode = mapper.readTree(cached.get());
+            } else {
+                apiNode = searchBillsFromApi(query, apiYear);
+                cacheService.set(cacheKey, apiNode.toString(), Duration.ofMinutes(30));
+            }
+        } else {
+            apiNode = searchBillsFromApi(query, apiYear);
         }
-        JsonNode result = searchBills(query, year);
-        cacheService.set(cacheKey, result.toString(), Duration.ofMinutes(30));
-        return result;
+
+        ArrayNode apiResults = mapper.createArrayNode();
+        JsonNode items = apiNode.path("result").path("items");
+        if (items.isArray()) {
+            items.forEach(item -> {
+                JsonNode r = item.path("result");
+                apiResults.add(r.isMissingNode() ? item : r);
+            });
+        }
+
+        // Local DB results
+        List<Bill> localBills = billRepository.searchBills(query, yearInt, chamber, status, committee);
+        ArrayNode localResults = mapper.createArrayNode();
+        for (Bill b : localBills) {
+            localResults.add(billToNode(b));
+        }
+
+        ObjectNode response = mapper.createObjectNode();
+        response.set("apiResults", apiResults);
+        response.set("localResults", localResults);
+        return response;
+    }
+
+    public JsonNode semanticSearch(String query) throws IOException {
+        float[] queryEmbedding = embeddingService.generateEmbedding(query);
+        String embeddingStr = embeddingService.floatArrayToString(queryEmbedding);
+        List<Bill> similar = billRepository.findSimilarBills(embeddingStr, 20);
+        ArrayNode results = mapper.createArrayNode();
+        for (Bill b : similar) {
+            results.add(billToNode(b));
+        }
+        ObjectNode response = mapper.createObjectNode();
+        response.set("results", results);
+        return response;
+    }
+
+    private ObjectNode billToNode(Bill b) {
+        ObjectNode node = mapper.createObjectNode();
+        node.put("basePrintNoStr", b.getBasePrintNoStr());
+        node.put("title", b.getTitle());
+        if (b.getSummary() != null) node.put("summary", b.getSummary());
+        node.put("chamber", b.getChamber());
+        if (b.getYear() != null) node.put("year", b.getYear());
+        if (b.getStatus() != null) node.put("status", b.getStatus());
+        if (b.getSponsorName() != null) node.put("sponsorName", b.getSponsorName());
+        if (b.getCommitteeName() != null) node.put("committeeName", b.getCommitteeName());
+        return node;
+    }
+
+    private Integer parseYear(String year) {
+        if (year == null || year.isBlank()) return null;
+        try {
+            int y = Integer.parseInt(year.trim());
+            return (y >= 2010 && y <= 2030) ? y : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     public JsonNode getBill(String year, String billId) throws IOException {
@@ -66,11 +138,11 @@ public class BillService {
         JsonNode apiResult = getBillFromApi(year, billId);
         cacheService.set(cacheKey, apiResult.toString(), Duration.ofHours(24));
 
-        try{
+        try {
             Bill bill = parseBillFromApi(apiResult);
-            billRepository.save(bill);
-
-        } catch(Exception e){
+            Bill saved = billRepository.save(bill);
+            embeddingService.generateAndStoreEmbedding(saved);
+        } catch (Exception e) {
             System.err.println("Failed to save bill to DB: " + e.getMessage());
         }
 
@@ -94,7 +166,8 @@ public class BillService {
         Integer year = billData.path("session").asInt();
         String sponsorName = billData.path("sponsor").path("member").path("fullName").asText();
         String status = billData.path("status").path("statusDesc").asText();
-        
+        String committeeName = billData.path("status").path("committeeName").asText(null);
+
         OffsetDateTime publishedDate = null;
         String publishedDateStr = billData.path("publishedDateTime").asText();
         if (!publishedDateStr.isEmpty()) {
@@ -103,12 +176,14 @@ public class BillService {
             } catch (Exception e) {
             }
         }
-        
-        return new Bill(basePrintNoStr, title, summary, memo, chamber, year, 
-                        sponsorName, status, publishedDate);
+
+        Bill bill = new Bill(basePrintNoStr, title, summary, memo, chamber, year,
+                             sponsorName, status, publishedDate);
+        bill.setCommitteeName(committeeName);
+        return bill;
     }
 
-    private JsonNode searchBills(String query, String year) throws IOException {
+    private JsonNode searchBillsFromApi(String query, String year) throws IOException {
         String url = baseUrl + "bills/search?term=" + encode(query) + (year != null ? "&year=" + encode(year) : "") + "&key=" + apiKey;
         return getJson(url);
     }

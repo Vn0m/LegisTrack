@@ -44,9 +44,9 @@ public class Bill {
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
     
-    @Column(name = "content_embedding", columnDefinition = "vector(768)")
-    private float[] contentEmbedding;
-    
+    @Column(name = "committee_name")
+    private String committeeName;
+
     public Bill() {}
     
     public Bill(String basePrintNoStr, String title, String summary, String memo, 
@@ -62,7 +62,6 @@ public class Bill {
         this.publishedDate = publishedDate;
         this.createdAt = OffsetDateTime.now();
         this.updatedAt = OffsetDateTime.now();
-        this.contentEmbedding = null;
     }
     
     public UUID getId() { return id; }
@@ -101,6 +100,6 @@ public class Bill {
     public OffsetDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(OffsetDateTime updatedAt) { this.updatedAt = updatedAt; }
 
-    public float[] getContentEmbedding() { return contentEmbedding; }
-    public void setContentEmbedding(float[] contentEmbedding) { this.contentEmbedding = contentEmbedding; }
+    public String getCommitteeName() { return committeeName; }
+    public void setCommitteeName(String committeeName) { this.committeeName = committeeName; }
 }
