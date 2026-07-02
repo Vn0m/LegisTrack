@@ -47,9 +47,10 @@ public class LabelService {
     }
 
     public List<BillLabel> getLabelsForBill(String basePrintNoStr) {
-        Bill bill = billRepository.findByBasePrintNoStr(basePrintNoStr)
-            .orElseThrow(() -> new IllegalArgumentException("Bill not found: " + basePrintNoStr));
-        return billLabelRepository.findByBill_Id(bill.getId());
+        // A bill we haven't ingested yet simply has no labels.
+        return billRepository.findByBasePrintNoStr(basePrintNoStr)
+            .map(bill -> billLabelRepository.findByBill_Id(bill.getId()))
+            .orElseGet(List::of);
     }
 
     @Transactional

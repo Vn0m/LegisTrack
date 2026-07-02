@@ -1,58 +1,50 @@
 package com.legistrack.app.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.hc.client5.http.classic.methods.HttpPost;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.HttpClients;
-import org.apache.hc.core5.http.io.entity.EntityUtils;
-import org.springframework.beans.factory.annotation.Value;
+import com.legistrack.app.exception.UpstreamServiceException;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
 
-import java.io.IOException;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
 public class AiService {
-    private final String apiKey;
-    private final CacheService cacheService;
-    private final ObjectMapper mapper;
+    private static final String SUMMARIZATION_PATH = "/hf-inference/models/facebook/bart-large-cnn";
+    private static final Duration SUMMARY_CACHE_TTL = Duration.ofDays(7);
+    // bart-large-cnn takes ~1024 tokens of input; anything beyond gets ignored.
+    private static final int MAX_INPUT_CHARS = 4000;
 
-    public AiService(@Value("${app.huggingface.apiKey}") String apiKey,
-                     CacheService cacheService,
-                     ObjectMapper mapper) {
-        this.apiKey = apiKey;
+    private final RestClient huggingFace;
+    private final CacheService cacheService;
+
+    public AiService(@Qualifier("huggingFaceRestClient") RestClient huggingFace,
+                     CacheService cacheService) {
+        this.huggingFace = huggingFace;
         this.cacheService = cacheService;
-        this.mapper = mapper;
     }
 
-    public String summarizeMemo(String basePrintNoStr, String memoText) throws IOException {
+    public String summarize(String basePrintNoStr, String text) {
         String cacheKey = "ai:summary:" + basePrintNoStr;
         Optional<String> cached = cacheService.get(cacheKey);
         if (cached.isPresent()) {
             return cached.get();
         }
-        String response = summarizeMemoFromApi(memoText);
-        cacheService.set(cacheKey, response, Duration.ofDays(7));
+
+        String input = text.length() > MAX_INPUT_CHARS ? text.substring(0, MAX_INPUT_CHARS) : text;
+        String response = huggingFace.post()
+            .uri(SUMMARIZATION_PATH)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(Map.of("inputs", input))
+            .retrieve()
+            .body(String.class);
+        if (response == null || response.contains("\"error\"")) {
+            throw new UpstreamServiceException("AI summarization failed");
+        }
+
+        cacheService.set(cacheKey, response, SUMMARY_CACHE_TTL);
         return response;
     }
-
-    private String summarizeMemoFromApi(String memoText) throws IOException {
-        String endpoint = "https://api-inference.huggingface.co/models/facebook/bart-large-cnn";
-        try (CloseableHttpClient client = HttpClients.createDefault()) {
-            HttpPost post = new HttpPost(endpoint);
-            post.addHeader("Authorization", "Bearer " + apiKey);
-            post.addHeader("Content-Type", "application/json");
-            String body = "{\"inputs\": " + mapper.writeValueAsString(memoText) + "}";
-            post.setEntity(new org.apache.hc.core5.http.io.entity.StringEntity(body));
-            return client.execute(post, response -> {
-                String responseBody = EntityUtils.toString(response.getEntity());
-                if (responseBody.contains("\"error\"") || responseBody.contains("index out of range"))
-                    throw new IOException("INSUFFICIENT_CONTENT");
-                return responseBody;
-            });
-        }
-    }
 }
-
-
