@@ -1,121 +1,67 @@
 package com.legistrack.app.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.legistrack.app.model.BillLabel;
-import com.legistrack.app.model.Label;
+import com.legistrack.app.dto.CreateLabelRequest;
+import com.legistrack.app.dto.LabelDto;
+import com.legistrack.app.dto.LabelsResponseDto;
+import com.legistrack.app.dto.MessageDto;
 import com.legistrack.app.service.LabelService;
-import com.legistrack.app.service.SupabaseService;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
+// Reads are public, writes require auth — enforced centrally in SecurityConfig.
 @RestController
 @RequestMapping("/api/labels")
-@CrossOrigin(origins = "*")
 public class LabelController {
     private final LabelService labelService;
-    private final SupabaseService supabaseService;
-    private final ObjectMapper objectMapper;
 
-    public LabelController(LabelService labelService,
-                           SupabaseService supabaseService,
-                           ObjectMapper objectMapper) {
+    public LabelController(LabelService labelService) {
         this.labelService = labelService;
-        this.supabaseService = supabaseService;
-        this.objectMapper = objectMapper;
     }
 
     @GetMapping
-    public ResponseEntity<String> getAllLabels() throws Exception {
-        List<Label> labels = labelService.getAllLabels();
-        ArrayNode arr = objectMapper.createArrayNode();
-        for (Label l : labels) {
-            ObjectNode node = objectMapper.createObjectNode();
-            node.put("id", l.getId() != null ? l.getId().toString() : "");
-            node.put("label", l.getLabel());
-            arr.add(node);
-        }
-        ObjectNode response = objectMapper.createObjectNode();
-        response.set("labels", arr);
-        return ResponseEntity.ok(objectMapper.writeValueAsString(response));
+    public LabelsResponseDto getAllLabels() {
+        return new LabelsResponseDto(labelService.getAllLabels().stream().map(LabelDto::from).toList());
     }
 
     @PostMapping
-    public ResponseEntity<String> createLabel(@RequestHeader("Authorization") String authToken,
-                                              @RequestBody Map<String, String> body) throws Exception {
-        UUID userId = supabaseService.validateUser(authToken);
-        if (userId == null) return ResponseEntity.status(401).body("{\"error\":\"Unauthorized\"}");
-        try {
-            Label label = labelService.createLabel(body.get("label"));
-            ObjectNode response = objectMapper.createObjectNode();
-            response.put("id", label.getId().toString());
-            response.put("label", label.getLabel());
-            return ResponseEntity.ok(objectMapper.writeValueAsString(response));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body("{\"error\":\"" + e.getMessage() + "\"}");
+    public LabelDto createLabel(@RequestBody CreateLabelRequest request) {
+        if (request.label() == null || request.label().isBlank()) {
+            throw new IllegalArgumentException("label is required");
         }
+        return LabelDto.from(labelService.createLabel(request.label().trim()));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteLabel(@RequestHeader("Authorization") String authToken,
-                                              @PathVariable UUID id) throws Exception {
-        UUID userId = supabaseService.validateUser(authToken);
-        if (userId == null) return ResponseEntity.status(401).body("{\"error\":\"Unauthorized\"}");
-        try {
-            labelService.deleteLabel(id);
-            return ResponseEntity.ok("{\"message\":\"Label deleted\"}");
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body("{\"error\":\"" + e.getMessage() + "\"}");
-        }
+    public MessageDto deleteLabel(@PathVariable("id") UUID id) {
+        labelService.deleteLabel(id);
+        return new MessageDto("Label deleted");
     }
 
     @GetMapping("/bill/{basePrintNoStr}")
-    public ResponseEntity<String> getLabelsForBill(@PathVariable String basePrintNoStr) throws Exception {
-        try {
-            List<BillLabel> billLabels = labelService.getLabelsForBill(basePrintNoStr);
-            ArrayNode arr = objectMapper.createArrayNode();
-            for (BillLabel bl : billLabels) {
-                ObjectNode node = objectMapper.createObjectNode();
-                node.put("id", bl.getLabel().getId().toString());
-                node.put("label", bl.getLabel().getLabel());
-                arr.add(node);
-            }
-            ObjectNode response = objectMapper.createObjectNode();
-            response.set("labels", arr);
-            return ResponseEntity.ok(objectMapper.writeValueAsString(response));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.ok("{\"labels\":[]}");
-        }
+    public LabelsResponseDto getLabelsForBill(@PathVariable("basePrintNoStr") String basePrintNoStr) {
+        return new LabelsResponseDto(labelService.getLabelsForBill(basePrintNoStr).stream()
+            .map(bl -> LabelDto.from(bl.getLabel()))
+            .toList());
     }
 
     @PostMapping("/bill/{basePrintNoStr}/{labelId}")
-    public ResponseEntity<String> addLabelToBill(@RequestHeader("Authorization") String authToken,
-                                                 @PathVariable String basePrintNoStr,
-                                                 @PathVariable UUID labelId) throws Exception {
-        UUID userId = supabaseService.validateUser(authToken);
-        if (userId == null) return ResponseEntity.status(401).body("{\"error\":\"Unauthorized\"}");
-        try {
-            labelService.addLabelToBill(basePrintNoStr, labelId);
-            return ResponseEntity.ok("{\"message\":\"Label added\"}");
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body("{\"error\":\"" + e.getMessage() + "\"}");
-        } catch (IllegalStateException e) {
-            return ResponseEntity.status(409).body("{\"error\":\"" + e.getMessage() + "\"}");
-        }
+    public MessageDto addLabelToBill(@PathVariable("basePrintNoStr") String basePrintNoStr,
+                                     @PathVariable("labelId") UUID labelId) {
+        labelService.addLabelToBill(basePrintNoStr, labelId);
+        return new MessageDto("Label added");
     }
 
     @DeleteMapping("/bill/{basePrintNoStr}/{labelId}")
-    public ResponseEntity<String> removeLabelFromBill(@RequestHeader("Authorization") String authToken,
-                                                      @PathVariable String basePrintNoStr,
-                                                      @PathVariable UUID labelId) throws Exception {
-        UUID userId = supabaseService.validateUser(authToken);
-        if (userId == null) return ResponseEntity.status(401).body("{\"error\":\"Unauthorized\"}");
+    public MessageDto removeLabelFromBill(@PathVariable("basePrintNoStr") String basePrintNoStr,
+                                          @PathVariable("labelId") UUID labelId) {
         labelService.removeLabelFromBill(basePrintNoStr, labelId);
-        return ResponseEntity.ok("{\"message\":\"Label removed\"}");
+        return new MessageDto("Label removed");
     }
 }
