@@ -226,13 +226,23 @@ export default function BillModal({ basePrintNoStr, onClose }: Props) {
 
               <div className="flex gap-3">
                 {!summary && (
-                  <button 
-                    onClick={doSummarize} 
-                    className="flex-1 border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text-secondary)] hover:text-[var(--accent)] px-5 py-2.5 text-sm transition-colors disabled:opacity-50 cursor-pointer"
-                    disabled={loading}
-                  >
-                    {loading ? 'Generating...' : 'Generate AI Summary'}
-                  </button>
+                  user ? (
+                    <button
+                      onClick={doSummarize}
+                      className="flex-1 border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text-secondary)] hover:text-[var(--accent)] px-5 py-2.5 text-sm transition-colors disabled:opacity-50 cursor-pointer"
+                      disabled={loading}
+                    >
+                      {loading ? 'Generating...' : 'Generate AI Summary'}
+                    </button>
+                  ) : (
+                    <button
+                      className="flex-1 border border-[var(--border)] text-[var(--text-muted)] px-5 py-2.5 text-sm cursor-not-allowed"
+                      disabled
+                      title="Sign in to generate AI summaries"
+                    >
+                      Generate AI Summary
+                    </button>
+                  )
                 )}
                 
                 {user ? (

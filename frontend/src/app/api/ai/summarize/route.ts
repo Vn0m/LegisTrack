@@ -4,9 +4,10 @@ const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8080';
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
+  const auth = req.headers.get('Authorization') || '';
   const res = await fetch(`${BACKEND_URL}/api/ai/summarize`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'Authorization': auth },
     body,
   });
   

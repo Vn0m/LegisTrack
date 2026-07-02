@@ -36,9 +36,15 @@ export async function getBill(basePrintNoStr: string) {
 }
 
 export async function summarizeBill(basePrintNoStr: string) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Sign in to generate AI summaries');
+
   const res = await fetch('/api/ai/summarize', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+    },
     body: JSON.stringify({ basePrintNoStr }),
   });
   
@@ -158,19 +164,12 @@ export async function getMyBills() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('Not authenticated');
 
+  // Labels come joined in the response — no per-bill fetching.
   const res = await fetch('/api/saved-bills/my-bills', {
     headers: { 'Authorization': `Bearer ${session.access_token}` },
   });
   if (!res.ok) throw new Error('Failed to fetch saved bills');
-  const data = await res.json();
-
-  const billsWithLabels = await Promise.all(
-    data.bills.map(async (bill: any) => {
-      const labelsData = await getBillLabels(bill.basePrintNoStr);
-      return { ...bill, labels: labelsData.labels };
-    })
-  );
-  return { bills: billsWithLabels };
+  return res.json();
 }
 
 // ── Labels ────────────────────────────────────────────────────────────────────

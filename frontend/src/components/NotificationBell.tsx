@@ -4,9 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { getNotifications, markNotificationRead, markAllNotificationsRead, NotificationItem } from '../lib/nysenate-api';
 import { supabase } from '../lib/supabase';
 
-type Props = { onBillClick?: (basePrintNoStr: string) => void };
-
-export default function NotificationBell({ onBillClick }: Props) {
+export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -55,7 +53,8 @@ export default function NotificationBell({ onBillClick }: Props) {
       setUnreadCount(prev => Math.max(0, prev - 1));
     }
     setOpen(false);
-    onBillClick?.(n.basePrintNoStr);
+    // The bell renders in the layout; the home page listens and opens the modal.
+    window.dispatchEvent(new CustomEvent('legistrack:open-bill', { detail: n.basePrintNoStr }));
   };
 
   const timeAgo = (iso: string) => {
