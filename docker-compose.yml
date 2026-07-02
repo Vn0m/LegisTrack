@@ -13,13 +13,20 @@ services:
       - NY_SENATE_API_KEY=${NY_SENATE_API_KEY}
       - HUGGINGFACE_API_KEY=${HUGGINGFACE_API_KEY}
       - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET:-}
       - AWS_REGION=${AWS_REGION}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - SQS_QUEUE_URL=${SQS_QUEUE_URL}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     networks:
       - legistrack-network
 
@@ -35,7 +42,8 @@ services:
     environment:
       - BACKEND_URL=http://backend:8080
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - legistrack-network
 
@@ -43,6 +51,11 @@ services:
     image: redis:8.4-alpine
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
     networks:
       - legistrack-network
 
