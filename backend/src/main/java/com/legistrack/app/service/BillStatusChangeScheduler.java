@@ -8,9 +8,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClientException;
 
-import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -35,13 +34,15 @@ public class BillStatusChangeScheduler {
         this.notificationService = notificationService;
     }
 
-    @Scheduled(cron = "0 0 9 * * ?") 
-    @Transactional
+    // No @Transactional here: this loop makes one external HTTP call per bill,
+    // and a transaction must never stay open across network I/O. Each save and
+    // notification runs in its own short transaction instead.
+    @Scheduled(cron = "0 0 9 * * ?")
     public void checkBillStatusChanges() {
         logger.info("Starting daily bill status check scheduler");
-        
+
         try {
-            List<SavedBill> allSavedBills = savedBillRepository.findAll();
+            List<SavedBill> allSavedBills = savedBillRepository.findAllWithBill();
             Set<UUID> checkedBillIds = new HashSet<>();
             int updatedCount = 0;
 
@@ -78,8 +79,8 @@ public class BillStatusChangeScheduler {
                         logger.info("Bill {} status updated: {} -> {}", 
                             basePrintNoStr, previousStatus, latestStatus);
                     }
-                } catch (IOException e) {
-                    logger.warn("Failed to fetch status for bill {}: {}", 
+                } catch (RestClientException e) {
+                    logger.warn("Failed to fetch status for bill {}: {}",
                         bill.getBasePrintNoStr(), e.getMessage());
                 }
             }

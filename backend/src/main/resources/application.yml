@@ -1,5 +1,6 @@
 server:
   port: 8080
+  shutdown: graceful
 
 spring:
   application:
@@ -13,37 +14,46 @@ spring:
     hibernate:
       ddl-auto: none
     show-sql: false
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
+    # Everything the web layer needs is fetch-joined up front; keeping the
+    # session open for the view would just hide lazy-loading mistakes.
+    open-in-view: false
   data:
     redis:
       url: ${REDIS_URL}
-  cloud:
-    aws:
-      region:
-        static: ${AWS_REGION}
-      credentials:
-        access-key: ${AWS_ACCESS_KEY_ID}
-        secret-key: ${AWS_SECRET_ACCESS_KEY}
+  task:
+    execution:
+      pool:
+        core-size: 2
+        max-size: 4
+        queue-capacity: 200
+      thread-name-prefix: async-
+  # AWS region and credentials are intentionally not configured here: the SDK
+  # default chain reads env vars locally and IAM roles on ECS/EC2.
 
 app:
   nysenate:
-    baseUrl: https://legislation.nysenate.gov/api/3/
+    baseUrl: https://legislation.nysenate.gov/api/3
     apiKey: ${NY_SENATE_API_KEY}
   huggingface:
     apiKey: ${HUGGINGFACE_API_KEY}
   supabase:
     url: ${SUPABASE_URL}
-    serviceKey: ${SUPABASE_SERVICE_ROLE_KEY}
     # Only needed while the project's current signing key is the legacy HS256
     # shared secret. Once rotated to an asymmetric key, JWKS covers everything.
     jwtSecret: ${SUPABASE_JWT_SECRET:}
   aws:
     sqs-queue-url: ${SQS_QUEUE_URL}
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
 logging:
   level:
     root: INFO
-
