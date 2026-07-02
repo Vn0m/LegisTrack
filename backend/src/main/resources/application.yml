@@ -37,6 +37,9 @@ app:
   supabase:
     url: ${SUPABASE_URL}
     serviceKey: ${SUPABASE_SERVICE_ROLE_KEY}
+    # Only needed while the project's current signing key is the legacy HS256
+    # shared secret. Once rotated to an asymmetric key, JWKS covers everything.
+    jwtSecret: ${SUPABASE_JWT_SECRET:}
   aws:
     sqs-queue-url: ${SQS_QUEUE_URL}
 
