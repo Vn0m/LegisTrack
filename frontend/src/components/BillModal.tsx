@@ -149,6 +149,17 @@ export default function BillModal({ basePrintNoStr, onClose }: Props) {
   const statusText = result?.status?.statusDesc || result?.status;
   const sponsorName = sponsor?.fullName || result?.sponsorName;
   const districtCode = sponsor?.districtCode;
+  const committeeName = result?.status?.committeeName;
+
+  const amendment = result?.amendments?.items?.[result?.activeVersion ?? ''];
+  const coSponsors: any[] = amendment?.coSponsors?.items || [];
+  const sameAs = amendment?.sameAs?.items?.[0];
+  const actions: any[] = (result?.actions?.items || []).slice().reverse();
+  const votes: any[] = result?.votes?.items || [];
+
+  const openBill = (ref: string) => {
+    window.dispatchEvent(new CustomEvent('legistrack:open-bill', { detail: ref }));
+  };
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50" onClick={onClose}>
@@ -222,6 +233,33 @@ export default function BillModal({ basePrintNoStr, onClose }: Props) {
                       {districtCode && (
                         <span className="text-[var(--text-muted)]"> (District {districtCode})</span>
                       )}
+                    </dd>
+                  </div>
+                )}
+                {committeeName && (
+                  <div>
+                    <dt className="text-[var(--text-muted)] text-xs uppercase tracking-wide mb-1">Committee</dt>
+                    <dd className="text-[var(--text-primary)]">{committeeName}</dd>
+                  </div>
+                )}
+                {sameAs && (
+                  <div>
+                    <dt className="text-[var(--text-muted)] text-xs uppercase tracking-wide mb-1">Same As</dt>
+                    <dd>
+                      <button
+                        onClick={() => openBill(`${sameAs.basePrintNo}-${sameAs.session}`)}
+                        className="text-[var(--accent)] hover:underline cursor-pointer font-mono text-sm"
+                      >
+                        {sameAs.basePrintNo}-{sameAs.session}
+                      </button>
+                    </dd>
+                  </div>
+                )}
+                {coSponsors.length > 0 && (
+                  <div className="col-span-2">
+                    <dt className="text-[var(--text-muted)] text-xs uppercase tracking-wide mb-1">Co-Sponsors</dt>
+                    <dd className="text-[var(--text-secondary)] text-sm">
+                      {coSponsors.map((c: any) => c.fullName).join(', ')}
                     </dd>
                   </div>
                 )}
@@ -369,6 +407,41 @@ export default function BillModal({ basePrintNoStr, onClose }: Props) {
                     <p className="text-[var(--text-secondary)] leading-relaxed">{summary}</p>
                   </div>
                 )
+              )}
+
+              {votes.length > 0 && (
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-[var(--text-muted)] mb-2">Votes</p>
+                  <div className="space-y-2">
+                    {votes.map((v: any, i: number) => (
+                      <div key={i} className="text-sm flex flex-wrap items-baseline gap-x-3">
+                        <span className="text-[var(--text-muted)] font-mono text-xs">{v.voteDate}</span>
+                        <span className="text-[var(--text-primary)]">
+                          {v.voteType}{v.committee?.name ? ` — ${v.committee.name}` : ''}
+                        </span>
+                        <span className="text-[var(--text-secondary)]">
+                          {Object.entries(v.memberVotes?.items || {})
+                            .map(([kind, val]: [string, any]) => `${kind} ${val?.size ?? val?.items?.length ?? 0}`)
+                            .join(' · ')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {actions.length > 0 && (
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-[var(--text-muted)] mb-2">History</p>
+                  <div className="max-h-48 overflow-y-auto space-y-2 border-l border-[var(--border-muted)] pl-4">
+                    {actions.map((a: any, i: number) => (
+                      <div key={i} className="text-sm">
+                        <span className="text-[var(--text-muted)] font-mono text-xs mr-3">{a.date}</span>
+                        <span className="text-[var(--text-secondary)]">{a.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
           )}
