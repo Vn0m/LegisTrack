@@ -21,13 +21,13 @@ public interface BillRepository extends JpaRepository<Bill, UUID> {
     List<Bill> findByBasePrintNoStrIn(Collection<String> basePrintNoStrs);
 
     @Query("SELECT b FROM Bill b WHERE " +
-           "(:searchTerm IS NULL OR LOWER(b.title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-           "LOWER(b.summary) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-           "LOWER(b.sponsorName) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) AND " +
+           "(CAST(:searchTerm AS string) IS NULL OR LOWER(b.title) LIKE LOWER(CONCAT('%', CAST(:searchTerm AS string), '%')) OR " +
+           "LOWER(b.summary) LIKE LOWER(CONCAT('%', CAST(:searchTerm AS string), '%')) OR " +
+           "LOWER(b.sponsorName) LIKE LOWER(CONCAT('%', CAST(:searchTerm AS string), '%'))) AND " +
            "(:year IS NULL OR b.year = :year) AND " +
-           "(:chamber IS NULL OR LOWER(b.chamber) = LOWER(:chamber)) AND " +
-           "(:status IS NULL OR LOWER(b.status) LIKE LOWER(CONCAT('%', :status, '%'))) AND " +
-           "(:committee IS NULL OR LOWER(b.committeeName) LIKE LOWER(CONCAT('%', :committee, '%')))")
+           "(CAST(:chamber AS string) IS NULL OR LOWER(b.chamber) = LOWER(CAST(:chamber AS string))) AND " +
+           "(CAST(:status AS string) IS NULL OR LOWER(b.status) LIKE LOWER(CONCAT('%', CAST(:status AS string), '%'))) AND " +
+           "(CAST(:committee AS string) IS NULL OR LOWER(b.committeeName) LIKE LOWER(CONCAT('%', CAST(:committee AS string), '%')))")
     List<Bill> searchBills(@Param("searchTerm") String searchTerm,
                            @Param("year") Integer year,
                            @Param("chamber") String chamber,
