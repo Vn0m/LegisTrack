@@ -23,10 +23,6 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 
-/**
- * Stateless resource server. Supabase-issued JWTs are validated locally —
- * no network round-trip per request. Route rules live here, not in controllers.
- */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -47,13 +43,6 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /**
-     * Supabase signs new tokens with an asymmetric key published at the project's
-     * JWKS endpoint. Projects that have not rotated off the legacy shared secret
-     * still issue HS256 tokens; those are verified with SUPABASE_JWT_SECRET when set.
-     * The decoder routes on the token's alg header so both key types work during
-     * and after rotation.
-     */
     @Bean
     public JwtDecoder jwtDecoder(@Value("${app.supabase.url}") String supabaseUrl,
                                  @Value("${app.supabase.jwtSecret:}") String legacySecret) {

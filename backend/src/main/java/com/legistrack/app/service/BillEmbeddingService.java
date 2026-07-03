@@ -22,7 +22,6 @@ public class BillEmbeddingService {
     private static final String EMBEDDING_PATH =
         "/hf-inference/models/sentence-transformers/all-mpnet-base-v2/pipeline/feature-extraction";
     private static final int EMBEDDING_DIMENSIONS = 768;
-    // mpnet truncates around 384 tokens anyway; don't ship whole memos over the wire.
     private static final int MAX_INPUT_CHARS = 2000;
 
     private final RestClient huggingFace;
@@ -60,7 +59,6 @@ public class BillEmbeddingService {
         if (response == null) {
             throw new UpstreamServiceException("Empty embedding response from HuggingFace");
         }
-        // A single input returns a flat [768]; batched inputs nest one array per input.
         JsonNode vector = response.isArray() && response.size() > 0 && response.get(0).isArray()
             ? response.get(0)
             : response;
@@ -83,8 +81,6 @@ public class BillEmbeddingService {
         return sb.append(']').toString();
     }
 
-    // Not @Async: called from the async entry points above so the backfill loop
-    // stays sequential instead of a self-invocation that would silently run inline.
     private boolean embed(Bill bill) {
         try {
             String text = buildEmbeddingText(bill);

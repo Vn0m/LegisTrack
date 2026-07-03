@@ -14,8 +14,6 @@ spring:
     hibernate:
       ddl-auto: none
     show-sql: false
-    # Everything the web layer needs is fetch-joined up front; keeping the
-    # session open for the view would just hide lazy-loading mistakes.
     open-in-view: false
   data:
     redis:
@@ -27,8 +25,6 @@ spring:
         max-size: 4
         queue-capacity: 200
       thread-name-prefix: async-
-  # AWS region and credentials are intentionally not configured here: the SDK
-  # default chain reads env vars locally and IAM roles on ECS/EC2.
 
 app:
   nysenate:
@@ -38,8 +34,6 @@ app:
     apiKey: ${HUGGINGFACE_API_KEY}
   supabase:
     url: ${SUPABASE_URL}
-    # Only needed while the project's current signing key is the legacy HS256
-    # shared secret. Once rotated to an asymmetric key, JWKS covers everything.
     jwtSecret: ${SUPABASE_JWT_SECRET:}
   aws:
     sqs-queue-url: ${SQS_QUEUE_URL}

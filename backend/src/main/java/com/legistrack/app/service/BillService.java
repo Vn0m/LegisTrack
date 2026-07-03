@@ -28,13 +28,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * Bill data flow: the NY Senate API is the source of truth, Redis is the hot
- * cache in front of it, and Postgres is the durable store that powers filters,
- * saved bills, and the pgvector semantic index. Every bill that passes through
- * a search or a detail view is upserted into Postgres and embedded async, so
- * the semantic corpus grows with normal usage.
- */
 @Service
 public class BillService {
     private static final Logger logger = LoggerFactory.getLogger(BillService.class);
@@ -110,11 +103,6 @@ public class BillService {
         return response;
     }
 
-    /**
-     * Returns the raw NY Senate API detail payload (the shape the frontend
-     * renders), serving from Redis when warm and upserting into Postgres on
-     * every fresh fetch.
-     */
     public JsonNode getBill(String year, String billId) {
         String basePrintNoStr = billId + "-" + year;
         String cacheKey = "bill:" + basePrintNoStr;
@@ -143,7 +131,6 @@ public class BillService {
         return apiResult;
     }
 
-    /** Fresh status straight from the API, bypassing caches. Used by the daily scheduler. */
     public String fetchFreshBillStatus(String year, String billId) {
         JsonNode apiResult = nySenate.get()
             .uri(uriBuilder -> uriBuilder.path("/bills/{year}/{billId}")
@@ -169,8 +156,6 @@ public class BillService {
             }
         }
 
-        // The global /bills/search endpoint silently ignores a year parameter;
-        // filtering by session requires the session-scoped path.
         String path = sessionYear == null ? "/bills/search" : "/bills/" + sessionYear + "/search";
         JsonNode node = nySenate.get()
             .uri(uriBuilder -> uriBuilder.path(path)
@@ -203,7 +188,6 @@ public class BillService {
         return bills;
     }
 
-    /** Best effort: a failed ingest must never fail the search request itself. */
     private void ingestNewBills(List<Bill> bills) {
         if (bills.isEmpty()) {
             return;
@@ -257,13 +241,11 @@ public class BillService {
         return existing;
     }
 
-    /** Parses the {@code result} node of both search items and bill detail responses. */
     private Bill parseBill(JsonNode billData) {
         String basePrintNoStr = billData.path("basePrintNoStr").asText("");
         String title = billData.path("title").asText("");
         String summary = billData.path("summary").asText("");
 
-        // Amendments arrive as a map keyed by version letter; "" is the base version.
         String memo = billData.path("amendments").path("items")
             .path(billData.path("activeVersion").asText(""))
             .path("memo").asText("");
@@ -294,8 +276,6 @@ public class BillService {
             throw new IllegalArgumentException("year must be a 4-digit number");
         }
         int y = Integer.parseInt(trimmed);
-        // NY legislative sessions span two years starting on odd years; both the
-        // API and our rows key bills by the session start year.
         return (y % 2 == 0) ? y - 1 : y;
     }
 
@@ -304,7 +284,6 @@ public class BillService {
             return null;
         }
         try {
-            // The API returns local Albany time without an offset.
             return LocalDateTime.parse(value).atZone(ALBANY).toOffsetDateTime();
         } catch (DateTimeParseException e) {
             try {

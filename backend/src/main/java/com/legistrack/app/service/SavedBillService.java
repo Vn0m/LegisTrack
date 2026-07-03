@@ -36,8 +36,6 @@ public class SavedBillService {
 
     @Transactional
     public void saveBill(UUID userId, String basePrintNoStr, String notes) {
-        // Every bill a user can see has already been ingested by search or the
-        // detail view, so saving never needs to create placeholder rows.
         Bill bill = requireBill(basePrintNoStr);
         if (savedBillRepository.existsByUserIdAndBill_Id(userId, bill.getId())) {
             throw new IllegalStateException("Bill already saved");

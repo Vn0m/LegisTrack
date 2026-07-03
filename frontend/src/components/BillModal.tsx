@@ -137,6 +137,9 @@ export default function BillModal({ basePrintNoStr, onClose }: Props) {
 
   if (!basePrintNoStr) return null;
 
+  const [billNo, billYear] = basePrintNoStr.split('-');
+  const pdfUrl = `https://legislation.nysenate.gov/pdf/bills/${billYear}/${billNo}`;
+
   const result = bill?.result;
   const sponsor = result?.sponsor?.member;
   const chamber = result?.billType?.chamber || result?.chamber;
@@ -245,8 +248,17 @@ export default function BillModal({ basePrintNoStr, onClose }: Props) {
                   )
                 )}
                 
+                <a
+                  href={pdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-5 py-2.5 text-sm border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
+                >
+                  Full Text (PDF)
+                </a>
+
                 {user ? (
-                  <button 
+                  <button
                     onClick={handleSave}
                     disabled={saving}
                     className={`px-5 py-2.5 text-sm transition-colors disabled:opacity-50 cursor-pointer ${

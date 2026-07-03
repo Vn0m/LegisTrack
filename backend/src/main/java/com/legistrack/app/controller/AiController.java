@@ -43,7 +43,6 @@ public class AiController {
                 "This bill does not have enough content for AI summarization");
         }
 
-        // The HuggingFace payload ([{"summary_text": ...}]) is passed through as-is.
         return ResponseEntity.ok()
             .contentType(MediaType.APPLICATION_JSON)
             .body(aiService.summarize(basePrintNoStr, text));

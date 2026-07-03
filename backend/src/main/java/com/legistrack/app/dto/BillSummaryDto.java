@@ -4,10 +4,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.legistrack.app.model.Bill;
 import com.legistrack.app.repository.BillSearchHit;
 
-/**
- * The one bill shape every list endpoint returns. {@code score} is only present
- * on semantic search results (cosine similarity, 0..1).
- */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record BillSummaryDto(
     String basePrintNoStr,
