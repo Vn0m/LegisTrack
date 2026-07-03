@@ -34,9 +34,6 @@ public class BillStatusChangeScheduler {
         this.notificationService = notificationService;
     }
 
-    // No @Transactional here: this loop makes one external HTTP call per bill,
-    // and a transaction must never stay open across network I/O. Each save and
-    // notification runs in its own short transaction instead.
     @Scheduled(cron = "0 0 9 * * ?")
     public void checkBillStatusChanges() {
         logger.info("Starting daily bill status check scheduler");

@@ -164,15 +164,12 @@ export async function getMyBills() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('Not authenticated');
 
-  // Labels come joined in the response — no per-bill fetching.
   const res = await fetch('/api/saved-bills/my-bills', {
     headers: { 'Authorization': `Bearer ${session.access_token}` },
   });
   if (!res.ok) throw new Error('Failed to fetch saved bills');
   return res.json();
 }
-
-// ── Labels ────────────────────────────────────────────────────────────────────
 
 export type LabelInfo = { id: string; label: string };
 
@@ -219,8 +216,6 @@ export async function removeLabelFromBill(basePrintNoStr: string, labelId: strin
   });
   if (!res.ok) throw new Error('Failed to remove label');
 }
-
-// ── Notifications ─────────────────────────────────────────────────────────────
 
 export type NotificationItem = {
   id: string;

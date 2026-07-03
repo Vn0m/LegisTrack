@@ -53,7 +53,6 @@ export default function NotificationBell() {
       setUnreadCount(prev => Math.max(0, prev - 1));
     }
     setOpen(false);
-    // The bell renders in the layout; the home page listens and opens the modal.
     window.dispatchEvent(new CustomEvent('legistrack:open-bill', { detail: n.basePrintNoStr }));
   };
 

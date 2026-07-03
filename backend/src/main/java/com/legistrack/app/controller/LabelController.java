@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
-// Reads are public, writes require auth — enforced centrally in SecurityConfig.
 @RestController
 @RequestMapping("/api/labels")
 public class LabelController {

@@ -14,7 +14,6 @@ import java.util.Optional;
 public class AiService {
     private static final String SUMMARIZATION_PATH = "/hf-inference/models/facebook/bart-large-cnn";
     private static final Duration SUMMARY_CACHE_TTL = Duration.ofDays(7);
-    // bart-large-cnn takes ~1024 tokens of input; anything beyond gets ignored.
     private static final int MAX_INPUT_CHARS = 4000;
 
     private final RestClient huggingFace;

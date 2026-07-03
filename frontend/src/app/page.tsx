@@ -9,16 +9,12 @@ export default function Home() {
   const [results, setResults] = useState<any>(null);
   const [open, setOpen] = useState<string | null>(null);
 
-  // The notification bell lives in the server layout; it asks us to open a
-  // bill through this event.
   useEffect(() => {
     const handler = (e: Event) => setOpen((e as CustomEvent<string>).detail);
     window.addEventListener('legistrack:open-bill', handler);
     return () => window.removeEventListener('legistrack:open-bill', handler);
   }, []);
 
-  // Keyword search returns { apiResults, localResults }; semantic returns
-  // { results } with a score. All three are the same bill shape.
   const seen = new Set<string>();
   const items = [
     ...(results?.apiResults || []),

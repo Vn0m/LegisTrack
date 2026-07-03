@@ -34,9 +34,6 @@ public interface BillRepository extends JpaRepository<Bill, UUID> {
                            @Param("status") String status,
                            @Param("committee") String committee);
 
-    // content_embedding is intentionally not a JPA field; everything below is
-    // the only read/write path for it.
-
     @Query(value = """
         SELECT base_print_no_str AS "basePrintNoStr", title, summary, chamber, year,
                sponsor_name AS "sponsorName", status, committee_name AS "committeeName",

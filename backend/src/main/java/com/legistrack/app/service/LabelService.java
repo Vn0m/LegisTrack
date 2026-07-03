@@ -47,7 +47,6 @@ public class LabelService {
     }
 
     public List<BillLabel> getLabelsForBill(String basePrintNoStr) {
-        // A bill we haven't ingested yet simply has no labels.
         return billRepository.findByBasePrintNoStr(basePrintNoStr)
             .map(bill -> billLabelRepository.findByBill_Id(bill.getId()))
             .orElseGet(List::of);

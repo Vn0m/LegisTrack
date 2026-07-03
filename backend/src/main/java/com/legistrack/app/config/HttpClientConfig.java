@@ -14,16 +14,11 @@ import org.springframework.web.client.RestClient;
 
 import java.time.Duration;
 
-/**
- * Shared, pooled HTTP clients for the two upstream APIs. Every call gets a
- * connect + read timeout so a hung upstream can never pin a request thread.
- */
 @Configuration
 public class HttpClientConfig {
 
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
     private static final Duration NYSENATE_READ_TIMEOUT = Duration.ofSeconds(20);
-    // HuggingFace can cold-start a model, so it gets a longer read window.
     private static final Duration HUGGINGFACE_READ_TIMEOUT = Duration.ofSeconds(60);
 
     @Bean
