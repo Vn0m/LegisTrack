@@ -377,7 +377,7 @@ export default function BillModal({ basePrintNoStr, onClose }: Props) {
                     <span key={l.id} className="flex items-center gap-1 px-2 py-0.5 bg-[var(--background)] border border-[var(--border)] font-mono text-[11px] text-[var(--text-secondary)]">
                       {l.label}
                       {user && showLabelPicker && (
-                        <button onClick={() => handleRemoveLabel(l.id)} className="text-[var(--text-muted)] hover:text-[var(--vetoed)] cursor-pointer leading-none">×</button>
+                        <button onClick={() => handleRemoveLabel(l.id)} className="text-[var(--text-muted)] hover:text-[var(--vetoed)] cursor-pointer leading-none px-0.5 -mr-0.5">×</button>
                       )}
                     </span>
                   ))}
