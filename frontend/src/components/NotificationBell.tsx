@@ -20,11 +20,15 @@ export default function NotificationBell() {
   }, []);
 
   const fetchNotifications = async () => {
-    const data = await getNotifications();
-    setNotifications(data.notifications);
-    setUnreadCount(data.unreadCount);
+    try {
+      const data = await getNotifications();
+      setNotifications(data.notifications);
+      setUnreadCount(data.unreadCount);
+    } catch {
+      setNotifications([]);
+      setUnreadCount(0);
+    }
   };
-
   useEffect(() => {
     if (!user) { setNotifications([]); setUnreadCount(0); return; }
     fetchNotifications();
