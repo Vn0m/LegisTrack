@@ -240,10 +240,11 @@ export async function getNotifications(): Promise<{ notifications: NotificationI
 export async function markNotificationRead(id: string): Promise<void> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return;
-  await fetch(`/api/notifications/${id}`, {
+  const res = await fetch(`/api/notifications/${id}`, {
     method: 'PUT',
     headers: { 'Authorization': `Bearer ${session.access_token}` },
   });
+  if (!res.ok) throw new Error('Failed to mark notification as read');
 }
 
 export async function markAllNotificationsRead(): Promise<void> {
