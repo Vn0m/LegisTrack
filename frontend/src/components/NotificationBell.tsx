@@ -71,7 +71,7 @@ export default function NotificationBell() {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(prev => !prev)}
-        className="relative p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+        className="relative p-2 text-white/60 hover:text-white transition-colors cursor-pointer"
         aria-label="Notifications"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -79,16 +79,16 @@ export default function NotificationBell() {
             d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
         </svg>
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 w-2 h-2 bg-[var(--accent)] rounded-full" />
+          <span className="absolute top-1 right-1 w-2 h-2 bg-[var(--gold)] rounded-full" />
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 bg-[var(--surface)] border border-[var(--border)] shadow-lg z-50">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
-            <span className="text-sm font-medium text-[var(--text-primary)]">Notifications</span>
+        <div className="absolute right-0 top-full mt-3 w-80 bg-[var(--surface)] border-2 border-[var(--ink)] shadow-xl z-50 text-[var(--text-primary)]">
+          <div className="flex items-center justify-between px-4 py-3 border-b-2 border-[var(--ink)]">
+            <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-[var(--text-muted)]">Notifications</span>
             {unreadCount > 0 && (
-              <button onClick={handleMarkAllRead} className="text-xs text-[var(--accent)] hover:underline cursor-pointer">
+              <button onClick={handleMarkAllRead} className="font-mono text-[11px] text-[var(--accent)] hover:underline cursor-pointer">
                 Mark all read
               </button>
             )}
@@ -106,8 +106,8 @@ export default function NotificationBell() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 mb-0.5">
-                        {!n.processed && <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full flex-shrink-0" />}
-                        <p className="text-xs font-mono text-[var(--accent)]">{n.basePrintNoStr}</p>
+                        {!n.processed && <span className="w-1.5 h-1.5 bg-[var(--gold)] rounded-full flex-shrink-0" />}
+                        <p className="text-xs font-mono font-medium text-[var(--accent)]">{n.basePrintNoStr}</p>
                       </div>
                       <p className="text-xs text-[var(--text-secondary)] truncate">
                         {n.oldStatus || 'Unknown'} → {n.newStatus}

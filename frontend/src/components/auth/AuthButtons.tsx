@@ -56,17 +56,17 @@ export default function AuthButtons() {
       <div className="flex items-center gap-4">
       {userEmail ? (
         <>
-            <span className="text-sm text-[var(--text-muted)]">{userEmail}</span>
-            <button 
-              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer" 
+            <span className="font-mono text-xs text-white/50 hidden sm:inline">{userEmail}</span>
+            <button
+              className="text-sm text-white/70 hover:text-white transition-colors cursor-pointer"
               onClick={signOut}
             >
               Sign out
             </button>
         </>
       ) : (
-          <button 
-            className="text-sm text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors cursor-pointer" 
+          <button
+            className="text-sm font-semibold text-[var(--ink)] bg-[var(--gold)] px-4 py-1.5 hover:bg-white transition-colors cursor-pointer"
             onClick={() => setShowAuthModal(true)}
           >
             Sign in
@@ -79,13 +79,13 @@ export default function AuthButtons() {
           className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" 
           onClick={() => setShowAuthModal(false)}
         >
-          <div 
-            className="bg-[var(--surface)] border border-[var(--border)] p-8 max-w-sm w-full mx-4" 
+          <div
+            className="bg-[var(--surface)] border-2 border-[var(--ink)] p-8 max-w-sm w-full mx-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-6">
-              <h2 className="font-serif text-xl font-semibold text-[var(--text-primary)]">
-                {isSignUp ? 'Create Account' : 'Sign In'}
+              <h2 className="font-display font-black text-xl text-[var(--text-primary)] tracking-tight">
+                {isSignUp ? 'Create account' : 'Sign in'}
               </h2>
               <button 
                 onClick={() => setShowAuthModal(false)} 
@@ -99,30 +99,30 @@ export default function AuthButtons() {
 
             <form onSubmit={handleAuth} className="space-y-4">
               <div>
-                <label className="block text-xs uppercase tracking-wide text-[var(--text-muted)] mb-2">Email</label>
+                <label className="block font-mono text-[10px] uppercase tracking-[0.15em] text-[var(--text-muted)] mb-2">Email</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-transparent border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] transition-colors"
+                  className="w-full px-4 py-2.5 bg-[var(--background)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--ink)] transition-colors"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs uppercase tracking-wide text-[var(--text-muted)] mb-2">Password</label>
+                <label className="block font-mono text-[10px] uppercase tracking-[0.15em] text-[var(--text-muted)] mb-2">Password</label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-transparent border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] transition-colors"
+                  className="w-full px-4 py-2.5 bg-[var(--background)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--ink)] transition-colors"
                   required
                   minLength={6}
                 />
               </div>
 
               {message && (
-                <p className={`text-sm ${message.includes('error') || message.includes('failed') ? 'text-[var(--assembly)]' : 'text-[var(--senate)]'}`}>
+                <p className={`text-sm ${message.includes('error') || message.includes('failed') ? 'text-[var(--vetoed)]' : 'text-[var(--signed)]'}`}>
                   {message}
                 </p>
               )}
@@ -130,9 +130,9 @@ export default function AuthButtons() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--background)] py-2.5 text-sm font-medium transition-colors disabled:opacity-50 cursor-pointer"
+                className="w-full bg-[var(--ink)] text-white hover:bg-[var(--accent)] py-2.5 text-sm font-semibold transition-colors disabled:opacity-60 cursor-pointer"
               >
-                {loading ? '...' : (isSignUp ? 'Create Account' : 'Sign In')}
+                {loading ? '…' : (isSignUp ? 'Create account' : 'Sign in')}
               </button>
 
               <div className="text-center pt-2">
