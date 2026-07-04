@@ -54,14 +54,14 @@ export default function BillJourney({ milestones, chamber }: Props) {
   const frac = currentIdx / (n - 1);
 
   return (
-    <div className="overflow-x-auto pb-1 -mx-1 px-1 outline-none">
+    <div className="overflow-x-auto pt-1 pb-1 -mx-1 px-1 outline-none">
       <div className="relative min-w-[600px]">
         <div
-          className="absolute top-[7px] h-[2px] bg-[var(--border-muted)]"
+          className="absolute top-[9px] h-[2px] bg-[var(--border-muted)]"
           style={{ left: `${100 / (n * 2)}%`, right: `${100 / (n * 2)}%` }}
         />
         <div
-          className="absolute top-[7px] h-[2px] bg-[var(--ink)] anim-draw"
+          className="absolute top-[9px] h-[2px] bg-[var(--ink)] anim-draw"
           style={{ left: `${100 / (n * 2)}%`, width: `calc(${100 - 100 / n}% * ${frac})` }}
         />
         <div className="relative grid" style={{ gridTemplateColumns: `repeat(${n}, 1fr)` }}>
@@ -79,14 +79,16 @@ export default function BillJourney({ milestones, chamber }: Props) {
                   : 'var(--ink)';
             return (
               <div key={type} className="flex flex-col items-center text-center px-1">
-                {stop ? (
-                  <span
-                    className={`anim-pop rounded-full ${isCurrent ? 'w-4 h-4 -mt-[1px] ring-2 ring-[var(--ink)]' : 'w-[14px] h-[14px] mt-[0.5px]'}`}
-                    style={{ background: dotColor, animationDelay: `${i * 60}ms` }}
-                  />
-                ) : (
-                  <span className="w-[14px] h-[14px] mt-[0.5px] rounded-full bg-[var(--surface)] border-2 border-[var(--border)]" />
-                )}
+                <div className="h-5 flex items-center justify-center">
+                  {stop ? (
+                    <span
+                      className={`anim-pop rounded-full ${isCurrent ? 'w-5 h-5 border-2 border-[var(--ink)]' : 'w-[14px] h-[14px]'}`}
+                      style={{ background: dotColor, animationDelay: `${i * 60}ms` }}
+                    />
+                  ) : (
+                    <span className="w-[14px] h-[14px] rounded-full bg-[var(--surface)] border-2 border-[var(--border)]" />
+                  )}
+                </div>
                 <span
                   className={`font-mono text-[10px] uppercase tracking-wide mt-2 leading-tight ${
                     stop ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-muted)]'
