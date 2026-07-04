@@ -62,7 +62,7 @@ body {
 
 input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible {
   outline: 3px solid var(--gold);
-  outline-offset: 1px;
+  outline-offset: -3px;
 }
 
 @keyframes station-pop {

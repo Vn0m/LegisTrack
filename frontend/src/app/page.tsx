@@ -68,7 +68,7 @@ export default function Home() {
               <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-[var(--text-muted)] border-b-2 border-[var(--ink)] pb-2 mb-8">
                 How a bill becomes law
               </p>
-              <div className="overflow-x-auto pb-1">
+              <div className="overflow-x-auto pb-1 outline-none">
                 <div className="relative min-w-[600px] max-w-2xl">
                   <div className="absolute top-[6px] h-[2px] bg-[var(--border)]" style={{ left: '6.25%', right: '6.25%' }} />
                   <div className="relative grid grid-cols-8">

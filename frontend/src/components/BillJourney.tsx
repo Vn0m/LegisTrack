@@ -54,7 +54,7 @@ export default function BillJourney({ milestones, chamber }: Props) {
   const frac = currentIdx / (n - 1);
 
   return (
-    <div className="overflow-x-auto pb-1 -mx-1 px-1">
+    <div className="overflow-x-auto pb-1 -mx-1 px-1 outline-none">
       <div className="relative min-w-[600px]">
         <div
           className="absolute top-[7px] h-[2px] bg-[var(--border-muted)]"
