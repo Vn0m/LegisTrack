@@ -36,7 +36,7 @@ Search NY Senate bills, get AI-generated summaries of complex legislation, and t
 ### Docker (recommended)
 
 ```bash
-cp .env.example .env  # fill in your keys
+cp .env.example .env  
 docker compose up --build
 ```
 
@@ -68,8 +68,6 @@ DATABASE_URL=jdbc:postgresql://...
 DATABASE_USERNAME=postgres
 DATABASE_PASSWORD=...
 SUPABASE_URL=https://xxx.supabase.co
-# Only needed if your Supabase project still signs with the legacy HS256
-# secret. Once rotated to an asymmetric key, JWKS covers everything.
 SUPABASE_JWT_SECRET=
 NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
