@@ -250,8 +250,9 @@ export async function markNotificationRead(id: string): Promise<void> {
 export async function markAllNotificationsRead(): Promise<void> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return;
-  await fetch('/api/notifications/read-all', {
+  const res = await fetch('/api/notifications/read-all', {
     method: 'PUT',
     headers: { 'Authorization': `Bearer ${session.access_token}` },
   });
+  if (!res.ok) throw new Error('Failed to mark all notifications as read');
 }
