@@ -62,16 +62,38 @@ public class BillService {
 
     public SearchResponseDto search(String query, String year, String chamber, String status, String committee) {
         Integer sessionYear = parseSessionYear(year);
+        String chamberFilter = blankToNull(chamber);
+        String statusFilter = blankToNull(status);
+        String committeeFilter = blankToNull(committee);
 
         List<Bill> apiBills = parseSearchItems(fetchSearchFromApi(query, sessionYear));
         ingestNewBills(apiBills);
 
+        List<Bill> filteredApiBills = apiBills.stream()
+            .filter(b -> matchesFilters(b, chamberFilter, statusFilter, committeeFilter))
+            .toList();
+
         List<Bill> localBills = billRepository.searchBills(
-            blankToNull(query), sessionYear, blankToNull(chamber), blankToNull(status), blankToNull(committee));
+            blankToNull(query), sessionYear, chamberFilter, statusFilter, committeeFilter);
 
         return new SearchResponseDto(
-            apiBills.stream().map(BillSummaryDto::from).toList(),
+            filteredApiBills.stream().map(BillSummaryDto::from).toList(),
             localBills.stream().map(BillSummaryDto::from).toList());
+    }
+
+    private boolean matchesFilters(Bill bill, String chamber, String status, String committee) {
+        if (chamber != null && !chamber.equalsIgnoreCase(bill.getChamber())) {
+            return false;
+        }
+        if (status != null && (bill.getStatus() == null
+                || !bill.getStatus().toLowerCase().contains(status.toLowerCase()))) {
+            return false;
+        }
+        if (committee != null && (bill.getCommitteeName() == null
+                || !bill.getCommitteeName().toLowerCase().contains(committee.toLowerCase()))) {
+            return false;
+        }
+        return true;
     }
 
     public SemanticSearchResponseDto semanticSearch(String query) {
