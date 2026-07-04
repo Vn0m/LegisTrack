@@ -1,183 +1,60 @@
 package com.legistrack.app.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.legistrack.app.model.SavedBill;
+import com.legistrack.app.dto.BillRefRequest;
+import com.legistrack.app.dto.MessageDto;
+import com.legistrack.app.dto.NotesRequest;
+import com.legistrack.app.dto.SaveBillRequest;
+import com.legistrack.app.dto.SavedBillsResponseDto;
+import com.legistrack.app.dto.SavedStatusDto;
 import com.legistrack.app.service.SavedBillService;
-import com.legistrack.app.service.SupabaseService;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/saved-bills")
-@CrossOrigin(origins = "*")
 public class SavedBillController {
 
-    private final SupabaseService supabaseService;
     private final SavedBillService savedBillService;
-    private final ObjectMapper objectMapper;
 
-    public SavedBillController(SupabaseService supabaseService,
-                               SavedBillService savedBillService,
-                               ObjectMapper objectMapper) {
-        this.supabaseService = supabaseService;
+    public SavedBillController(SavedBillService savedBillService) {
         this.savedBillService = savedBillService;
-        this.objectMapper = objectMapper;
     }
 
     @PostMapping("/save")
-    public ResponseEntity<String> saveBill(@RequestHeader("Authorization") String authToken, 
-                                         @RequestBody Map<String, Object> body) throws Exception {
-        try {
-            UUID userId = supabaseService.validateUser(authToken);
-            if (userId == null) {
-                ObjectNode error = objectMapper.createObjectNode();
-                error.put("error", "Unauthorized");
-                return ResponseEntity.status(401).body(objectMapper.writeValueAsString(error));
-            }
-
-            savedBillService.saveBill(userId, body);
-            ObjectNode success = objectMapper.createObjectNode();
-            success.put("message", "Bill saved successfully");
-            return ResponseEntity.ok(objectMapper.writeValueAsString(success));
-            
-        } catch (IllegalArgumentException e) {
-            ObjectNode error = objectMapper.createObjectNode();
-            error.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(objectMapper.writeValueAsString(error));
-        } catch (IllegalStateException e) {
-            ObjectNode error = objectMapper.createObjectNode();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(409).body(objectMapper.writeValueAsString(error));
-        } catch (Exception e) {
-            e.printStackTrace();
-            ObjectNode error = objectMapper.createObjectNode();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(500).body(objectMapper.writeValueAsString(error));
-        }
+    public MessageDto saveBill(@AuthenticationPrincipal Jwt jwt, @RequestBody SaveBillRequest request) {
+        savedBillService.saveBill(CurrentUser.id(jwt), request.basePrintNoStr(), request.notes());
+        return new MessageDto("Bill saved successfully");
     }
 
     @DeleteMapping("/unsave")
-    public ResponseEntity<String> unsaveBill(@RequestHeader("Authorization") String authToken,
-                                            @RequestBody Map<String, Object> body) throws Exception {
-        try {
-            UUID userId = supabaseService.validateUser(authToken);
-            if (userId == null) {
-                ObjectNode error = objectMapper.createObjectNode();
-                error.put("error", "Unauthorized");
-                return ResponseEntity.status(401).body(objectMapper.writeValueAsString(error));
-            }
-
-            String basePrintNoStr = body.get("basePrintNoStr") != null ? body.get("basePrintNoStr").toString() : null;
-            savedBillService.unsaveBill(userId, basePrintNoStr);
-            
-            ObjectNode success = objectMapper.createObjectNode();
-            success.put("message", "Bill unsaved successfully");
-            return ResponseEntity.ok(objectMapper.writeValueAsString(success));
-            
-        } catch (IllegalArgumentException e) {
-            ObjectNode error = objectMapper.createObjectNode();
-            error.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(objectMapper.writeValueAsString(error));
-        } catch (Exception e) {
-            e.printStackTrace();
-            ObjectNode error = objectMapper.createObjectNode();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(500).body(objectMapper.writeValueAsString(error));
-        }
+    public MessageDto unsaveBill(@AuthenticationPrincipal Jwt jwt, @RequestBody BillRefRequest request) {
+        savedBillService.unsaveBill(CurrentUser.id(jwt), request.basePrintNoStr());
+        return new MessageDto("Bill unsaved successfully");
     }
 
     @GetMapping("/my-bills")
-    public ResponseEntity<String> getMyBills(@RequestHeader("Authorization") String authToken) throws Exception {
-        try {
-            UUID userId = supabaseService.validateUser(authToken);
-            if (userId == null) {
-                ObjectNode error = objectMapper.createObjectNode();
-                error.put("error", "Unauthorized");
-                return ResponseEntity.status(401).body(objectMapper.writeValueAsString(error));
-            }
-
-            List<SavedBill> savedBills = savedBillService.getUserSavedBills(userId);
-            
-            ArrayNode billsArray = objectMapper.createArrayNode();
-            for (SavedBill sb : savedBills) {
-                ObjectNode billNode = objectMapper.createObjectNode();
-                billNode.put("id", sb.getId().toString());
-                billNode.put("basePrintNoStr", sb.getBill().getBasePrintNoStr());
-                billNode.put("title", sb.getBill().getTitle());
-                billNode.put("savedAt", sb.getSavedAt().toString());
-                billNode.put("notes", sb.getNotes() != null ? sb.getNotes() : "");
-                billsArray.add(billNode);
-            }
-            
-            ObjectNode response = objectMapper.createObjectNode();
-            response.set("bills", billsArray);
-            return ResponseEntity.ok(objectMapper.writeValueAsString(response));
-            
-        } catch (Exception e) {
-            e.printStackTrace();
-            ObjectNode error = objectMapper.createObjectNode();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(500).body(objectMapper.writeValueAsString(error));
-        }
+    public SavedBillsResponseDto getMyBills(@AuthenticationPrincipal Jwt jwt) {
+        return savedBillService.getUserSavedBills(CurrentUser.id(jwt));
     }
 
     @GetMapping("/check")
-    public ResponseEntity<String> checkIfSaved(@RequestHeader("Authorization") String authToken,
-                                               @RequestParam String basePrintNoStr) throws Exception {
-        UUID userId = supabaseService.validateUser(authToken);
-        if (userId == null) {
-            return ResponseEntity.status(401).body("{\"error\":\"Unauthorized\"}");
-        }
-
-        return savedBillService.getSavedBill(userId, basePrintNoStr)
-            .map(savedBill -> {
-                ObjectNode response = objectMapper.createObjectNode();
-                response.put("saved", true);
-                response.put("notes", savedBill.getNotes() != null ? savedBill.getNotes() : "");
-                try {
-                    return ResponseEntity.ok(objectMapper.writeValueAsString(response));
-                } catch (Exception e) {
-                    return ResponseEntity.ok("{\"saved\":true,\"notes\":\"\"}");
-                }
-            })
-            .orElse(ResponseEntity.ok("{\"saved\":false,\"notes\":\"\"}"));
+    public SavedStatusDto checkIfSaved(@AuthenticationPrincipal Jwt jwt,
+                                       @RequestParam("basePrintNoStr") String basePrintNoStr) {
+        return savedBillService.getSavedStatus(CurrentUser.id(jwt), basePrintNoStr);
     }
 
     @PatchMapping("/notes")
-    public ResponseEntity<String> updateNotes(@RequestHeader("Authorization") String authToken,
-                                              @RequestBody Map<String, Object> body) throws Exception {
-        try {
-            UUID userId = supabaseService.validateUser(authToken);
-            if (userId == null) {
-                ObjectNode error = objectMapper.createObjectNode();
-                error.put("error", "Unauthorized");
-                return ResponseEntity.status(401).body(objectMapper.writeValueAsString(error));
-            }
-
-            String basePrintNoStr = body.get("basePrintNoStr") != null ? body.get("basePrintNoStr").toString() : null;
-            String notes = body.get("notes") != null ? body.get("notes").toString() : "";
-            
-            savedBillService.updateNotes(userId, basePrintNoStr, notes);
-            
-            ObjectNode success = objectMapper.createObjectNode();
-            success.put("message", "Notes updated successfully");
-            return ResponseEntity.ok(objectMapper.writeValueAsString(success));
-            
-        } catch (IllegalArgumentException e) {
-            ObjectNode error = objectMapper.createObjectNode();
-            error.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(objectMapper.writeValueAsString(error));
-        } catch (Exception e) {
-            e.printStackTrace();
-            ObjectNode error = objectMapper.createObjectNode();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(500).body(objectMapper.writeValueAsString(error));
-        }
+    public MessageDto updateNotes(@AuthenticationPrincipal Jwt jwt, @RequestBody NotesRequest request) {
+        savedBillService.updateNotes(CurrentUser.id(jwt), request.basePrintNoStr(),
+            request.notes() != null ? request.notes() : "");
+        return new MessageDto("Notes updated successfully");
     }
 }

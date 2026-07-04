@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Load .env file
-if [ -f ./.env ]; then
-  export $(cat ./.env | grep -v '^#' | xargs)
+if [ -f ../.env ]; then
+  set -a
+  source ../.env
+  set +a
 fi
 
 mvn spring-boot:run

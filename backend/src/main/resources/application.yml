@@ -1,5 +1,6 @@
 server:
   port: 8080
+  shutdown: graceful
 
 spring:
   application:
@@ -13,34 +14,40 @@ spring:
     hibernate:
       ddl-auto: none
     show-sql: false
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
+    open-in-view: false
   data:
     redis:
       url: ${REDIS_URL}
-  cloud:
-    aws:
-      region:
-        static: ${AWS_REGION}
-      credentials:
-        access-key: ${AWS_ACCESS_KEY_ID}
-        secret-key: ${AWS_SECRET_ACCESS_KEY}
+  task:
+    execution:
+      pool:
+        core-size: 2
+        max-size: 4
+        queue-capacity: 200
+      thread-name-prefix: async-
 
 app:
   nysenate:
-    baseUrl: https://legislation.nysenate.gov/api/3/
+    baseUrl: https://legislation.nysenate.gov/api/3
     apiKey: ${NY_SENATE_API_KEY}
   huggingface:
     apiKey: ${HUGGINGFACE_API_KEY}
   supabase:
     url: ${SUPABASE_URL}
-    serviceKey: ${SUPABASE_SERVICE_ROLE_KEY}
+    jwtSecret: ${SUPABASE_JWT_SECRET:}
   aws:
     sqs-queue-url: ${SQS_QUEUE_URL}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
 
 logging:
   level:
     root: INFO
-

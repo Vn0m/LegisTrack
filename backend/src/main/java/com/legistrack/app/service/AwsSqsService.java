@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import java.util.Map;
 
 @Service
-@SuppressWarnings("null")
 public class AwsSqsService {
     private static final Logger logger = LoggerFactory.getLogger(AwsSqsService.class);
     

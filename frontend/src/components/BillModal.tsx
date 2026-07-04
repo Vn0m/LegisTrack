@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState, useRef } from 'react';
-import { getBill, summarizeBill, saveBill, unsaveBill, checkIfSaved, updateNotes } from '../lib/nysenate-api';
+import { getBill, summarizeBill, saveBill, unsaveBill, checkIfSaved, updateNotes, getBillLabels, getLabels, addLabelToBill, removeLabelFromBill, createLabel, LabelInfo } from '../lib/nysenate-api';
 import { supabase } from '../lib/supabase';
+import BillJourney from './BillJourney';
 
 type Props = { basePrintNoStr: string | null; onClose: () => void };
 
@@ -17,24 +18,35 @@ export default function BillModal({ basePrintNoStr, onClose }: Props) {
   const [savingNotes, setSavingNotes] = useState(false);
   const notesRef = useRef(notes);
   notesRef.current = notes;
+  const [billLabels, setBillLabels] = useState<LabelInfo[]>([]);
+  const [allLabels, setAllLabels] = useState<LabelInfo[]>([]);
+  const [showLabelPicker, setShowLabelPicker] = useState(false);
+  const [newLabelText, setNewLabelText] = useState('');
 
   useEffect(() => {
     setSummary(null);
     setBill(null);
     setIsSaved(false);
     setNotes('');
-    
+    setBillLabels([]);
+    setShowLabelPicker(false);
+    setNewLabelText('');
+
     if (!basePrintNoStr) return;
     (async () => {
       setLoading(true);
       try {
-        const [data, savedStatus] = await Promise.all([
+        const [data, savedStatus, labelsRes, allLabelsRes] = await Promise.all([
           getBill(basePrintNoStr),
-          checkIfSaved(basePrintNoStr)
+          checkIfSaved(basePrintNoStr),
+          getBillLabels(basePrintNoStr),
+          getLabels(),
         ]);
         setBill(data);
         setIsSaved(savedStatus.saved);
         setNotes(savedStatus.notes);
+        setBillLabels(labelsRes.labels);
+        setAllLabels(allLabelsRes.labels);
       } finally {
         setLoading(false);
       }
@@ -82,8 +94,8 @@ export default function BillModal({ basePrintNoStr, onClose }: Props) {
         setIsSaved(true);
       }
     } catch (err: any) {
-      console.error('Failed to save/unsave:', err);
-      alert(err.message || 'Failed to save bill');
+      console.error('Failed to track/untrack:', err);
+      alert(err.message || 'Failed to track bill');
     } finally {
       setSaving(false);
     }
@@ -101,49 +113,94 @@ export default function BillModal({ basePrintNoStr, onClose }: Props) {
     }
   };
 
+  const handleAddLabel = async (labelId: string) => {
+    if (!basePrintNoStr) return;
+    await addLabelToBill(basePrintNoStr, labelId);
+    const added = allLabels.find(l => l.id === labelId);
+    if (added) setBillLabels(prev => [...prev, added]);
+  };
+
+  const handleRemoveLabel = async (labelId: string) => {
+    if (!basePrintNoStr) return;
+    await removeLabelFromBill(basePrintNoStr, labelId);
+    setBillLabels(prev => prev.filter(l => l.id !== labelId));
+  };
+
+  const handleCreateLabel = async () => {
+    const text = newLabelText.trim();
+    if (!text || !basePrintNoStr) return;
+    const newLabel = await createLabel(text);
+    setAllLabels(prev => [...prev, newLabel]);
+    await addLabelToBill(basePrintNoStr, newLabel.id);
+    setBillLabels(prev => [...prev, newLabel]);
+    setNewLabelText('');
+  };
+
   if (!basePrintNoStr) return null;
+
+  const [billNo, billYear] = basePrintNoStr.split('-');
+  const pdfUrl = `https://legislation.nysenate.gov/pdf/bills/${billYear}/${billNo}`;
 
   const result = bill?.result;
   const sponsor = result?.sponsor?.member;
   const chamber = result?.billType?.chamber || result?.chamber;
-  const isSenate = chamber?.toUpperCase() === 'SENATE';
-  
+  const isSenate = chamber ? chamber.toUpperCase() === 'SENATE' : basePrintNoStr.toUpperCase().startsWith('S');
+
   const session = result?.session || result?.year;
   const statusText = result?.status?.statusDesc || result?.status;
   const sponsorName = sponsor?.fullName || result?.sponsorName;
   const districtCode = sponsor?.districtCode;
+  const committeeName = result?.status?.committeeName;
+
+  const amendment = result?.amendments?.items?.[result?.activeVersion ?? ''];
+  const coSponsors: any[] = amendment?.coSponsors?.items || [];
+  const sameAs = amendment?.sameAs?.items?.[0];
+  const actions: any[] = (result?.actions?.items || []).slice().reverse();
+  const votes: any[] = result?.votes?.items || [];
+  const milestones: any[] = result?.milestones?.items || [];
+
+  const openBill = (ref: string) => {
+    window.dispatchEvent(new CustomEvent('legistrack:open-bill', { detail: ref }));
+  };
+
+  const sectionHead = (label: string) => (
+    <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-[var(--text-muted)] border-b border-[var(--border-muted)] pb-1.5 mb-3">
+      {label}
+    </p>
+  );
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50" onClick={onClose}>
-      <div 
-        className="bg-[var(--surface)] border border-[var(--border)] max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50" onClick={onClose}>
+      <div
+        className="bg-[var(--surface)] border-2 border-[var(--ink)] max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-8 py-6 border-b border-[var(--border)]">
-          <div className="flex justify-between items-start">
-            <div className="flex-1">
-              <div className="flex items-center gap-4 mb-3">
-                <span className="text-[var(--accent)] text-sm font-mono">
-                  {basePrintNoStr}
+        <div className="px-8 py-6 border-b-2 border-[var(--ink)]">
+          <div className="flex justify-between items-start gap-6">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3 mb-3">
+                <span
+                  className="bullet w-9 h-9 text-base"
+                  style={{ background: isSenate ? 'var(--senate)' : 'var(--assembly)' }}
+                >
+                  {isSenate ? 'S' : 'A'}
                 </span>
-                {chamber && (
-                  <span className={`text-xs uppercase tracking-wide ${
-                    isSenate ? 'text-[var(--senate)]' : 'text-[var(--assembly)]'
-                  }`}>
-                    {isSenate ? 'Senate' : 'Assembly'}
-                  </span>
-                )}
+                <span className="font-mono text-sm font-medium">{basePrintNoStr}</span>
+                <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-[var(--text-muted)]">
+                  {isSenate ? 'Senate' : 'Assembly'}{session ? ` · ${session}` : ''}
+                </span>
               </div>
-              <h2 className="font-serif text-2xl font-semibold text-[var(--text-primary)] leading-tight">
-                {result?.title || 'Loading...'}
+              <h2 className="font-display font-black text-2xl text-[var(--text-primary)] leading-tight tracking-tight">
+                {result?.title || 'Loading…'}
               </h2>
             </div>
-            <button 
-              className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors ml-6 p-1 cursor-pointer"
+            <button
+              className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors p-1 cursor-pointer shrink-0"
               onClick={onClose}
+              aria-label="Close"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
@@ -152,110 +209,247 @@ export default function BillModal({ basePrintNoStr, onClose }: Props) {
         <div className="overflow-y-auto flex-1 px-8 py-6">
           {loading && !result && (
             <div className="flex items-center justify-center py-12">
-              <div className="w-5 h-5 border border-[var(--text-muted)] border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-5 h-5 border-2 border-[var(--border)] border-t-[var(--ink)] rounded-full animate-spin"></div>
             </div>
           )}
 
           {result && (
-            <div className="space-y-6">
+            <div className="space-y-7">
+              {milestones.length > 0 && (
+                <div>
+                  {sectionHead('Progress')}
+                  <BillJourney milestones={milestones} chamber={chamber} />
+                </div>
+              )}
+
               {result.summary && (
                 <p className="text-[var(--text-secondary)] leading-relaxed">
                   {result.summary}
                 </p>
               )}
 
-              <dl className="grid grid-cols-2 gap-4 text-sm border-t border-b border-[var(--border-muted)] py-5">
-                {session && (
-                  <div>
-                    <dt className="text-[var(--text-muted)] text-xs uppercase tracking-wide mb-1">Session</dt>
-                    <dd className="text-[var(--text-primary)]">{session}</dd>
-                  </div>
-                )}
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-4 text-sm border-t border-b border-[var(--border-muted)] py-5">
                 {statusText && (
                   <div>
-                    <dt className="text-[var(--text-muted)] text-xs uppercase tracking-wide mb-1">Status</dt>
-                    <dd className="text-[var(--text-primary)]">{statusText}</dd>
+                    <dt className="font-mono text-[10px] uppercase tracking-[0.15em] text-[var(--text-muted)] mb-1">Status</dt>
+                    <dd className="text-[var(--text-primary)] font-medium">{statusText}</dd>
+                  </div>
+                )}
+                {committeeName && (
+                  <div>
+                    <dt className="font-mono text-[10px] uppercase tracking-[0.15em] text-[var(--text-muted)] mb-1">Committee</dt>
+                    <dd className="text-[var(--text-primary)] font-medium">{committeeName}</dd>
                   </div>
                 )}
                 {sponsorName && (
                   <div>
-                    <dt className="text-[var(--text-muted)] text-xs uppercase tracking-wide mb-1">Sponsor</dt>
-                    <dd className="text-[var(--text-primary)]">
+                    <dt className="font-mono text-[10px] uppercase tracking-[0.15em] text-[var(--text-muted)] mb-1">Sponsor</dt>
+                    <dd className="text-[var(--text-primary)] font-medium">
                       {sponsorName}
                       {districtCode && (
-                        <span className="text-[var(--text-muted)]"> (District {districtCode})</span>
+                        <span className="text-[var(--text-muted)] font-normal"> · District {districtCode}</span>
                       )}
+                    </dd>
+                  </div>
+                )}
+                {sameAs && (
+                  <div>
+                    <dt className="font-mono text-[10px] uppercase tracking-[0.15em] text-[var(--text-muted)] mb-1">Same as</dt>
+                    <dd>
+                      <button
+                        onClick={() => openBill(`${sameAs.basePrintNo}-${sameAs.session}`)}
+                        className="font-mono text-sm text-[var(--accent)] hover:underline decoration-2 underline-offset-2 cursor-pointer"
+                      >
+                        {sameAs.basePrintNo}-{sameAs.session}
+                      </button>
+                    </dd>
+                  </div>
+                )}
+                {coSponsors.length > 0 && (
+                  <div className="col-span-2">
+                    <dt className="font-mono text-[10px] uppercase tracking-[0.15em] text-[var(--text-muted)] mb-1">Co-sponsors</dt>
+                    <dd className="text-[var(--text-secondary)]">
+                      {coSponsors.map((c: any) => c.fullName).join(', ')}
                     </dd>
                   </div>
                 )}
               </dl>
 
-              <div className="flex gap-3">
-                {!summary && (
-                  <button 
-                    onClick={doSummarize} 
-                    className="flex-1 border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text-secondary)] hover:text-[var(--accent)] px-5 py-2.5 text-sm transition-colors disabled:opacity-50 cursor-pointer"
-                    disabled={loading}
-                  >
-                    {loading ? 'Generating...' : 'Generate AI Summary'}
-                  </button>
-                )}
-                
+              <div className="flex flex-wrap gap-3">
                 {user ? (
-                  <button 
+                  <button
                     onClick={handleSave}
                     disabled={saving}
-                    className={`px-5 py-2.5 text-sm transition-colors disabled:opacity-50 cursor-pointer ${
-                      isSaved 
-                        ? 'border border-[var(--assembly)] text-[var(--assembly)] hover:bg-[var(--assembly)] hover:text-white' 
-                        : 'border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--background)]'
+                    className={`px-5 py-2.5 text-sm font-semibold transition-colors disabled:opacity-60 cursor-pointer ${
+                      isSaved
+                        ? 'bg-[var(--surface)] border-2 border-[var(--ink)] text-[var(--text-primary)] hover:border-[var(--vetoed)] hover:text-[var(--vetoed)]'
+                        : 'bg-[var(--ink)] border-2 border-[var(--ink)] text-white hover:bg-[var(--accent)] hover:border-[var(--accent)]'
                     }`}
                   >
-                    {saving ? '...' : isSaved ? 'Unsave' : 'Save'}
+                    {saving ? '…' : isSaved ? 'Untrack' : 'Track bill'}
                   </button>
                 ) : (
-                  <button 
-                    className="px-5 py-2.5 text-sm border border-[var(--border)] text-[var(--text-muted)] cursor-not-allowed"
+                  <button
+                    className="px-5 py-2.5 text-sm font-semibold border-2 border-[var(--border)] text-[var(--text-muted)] cursor-not-allowed"
                     disabled
-                    title="Sign in to save bills"
+                    title="Sign in to track bills"
                   >
-                    Save
+                    Track bill
                   </button>
                 )}
+
+                {!summary && (
+                  user ? (
+                    <button
+                      onClick={doSummarize}
+                      className="px-5 py-2.5 text-sm font-semibold border-2 border-[var(--ink)] text-[var(--text-primary)] hover:bg-[var(--gold)] transition-colors disabled:opacity-60 cursor-pointer"
+                      disabled={loading}
+                    >
+                      {loading ? 'Summarizing…' : 'AI summary'}
+                    </button>
+                  ) : (
+                    <button
+                      className="px-5 py-2.5 text-sm font-semibold border-2 border-[var(--border)] text-[var(--text-muted)] cursor-not-allowed"
+                      disabled
+                      title="Sign in to generate AI summaries"
+                    >
+                      AI summary
+                    </button>
+                  )
+                )}
+
+                <a
+                  href={pdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-5 py-2.5 text-sm font-semibold border-2 border-[var(--ink)] text-[var(--text-primary)] hover:bg-[var(--ink)] hover:text-white transition-colors"
+                >
+                  Full text (PDF)
+                </a>
               </div>
 
+              {summary && (
+                summary.startsWith('Error:') ? (
+                  <div className="border-l-4 border-[var(--border)] pl-4 py-1">
+                    <p className="text-[var(--text-secondary)] text-sm">{summary.replace('Error: ', '')}</p>
+                  </div>
+                ) : (
+                  <div className="border-l-4 border-[var(--gold)] pl-4 py-1">
+                    <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-[var(--text-muted)] mb-2">AI summary</p>
+                    <p className="text-[var(--text-secondary)] leading-relaxed">{summary}</p>
+                  </div>
+                )
+              )}
+
               {isSaved && user && (
-                <div className="pt-2">
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-xs uppercase tracking-wide text-[var(--text-muted)]">
-                      Your Notes
-                    </label>
+                <div>
+                  <div className="flex items-baseline justify-between border-b border-[var(--border-muted)] pb-1.5 mb-3">
+                    <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-[var(--text-muted)]">Your notes</p>
                     {savingNotes && (
-                      <span className="text-xs text-[var(--text-muted)]">Saving...</span>
+                      <span className="font-mono text-[10px] text-[var(--text-muted)]">Saving…</span>
                     )}
                   </div>
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     onBlur={handleNotesBlur}
-                    placeholder="Add personal notes about this bill..."
-                    className="w-full bg-transparent border border-[var(--border)] px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] transition-colors resize-none"
+                    placeholder="Why are you tracking this bill?"
+                    className="w-full bg-[var(--background)] border border-[var(--border)] px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--ink)] transition-colors resize-none"
                     rows={3}
                   />
                 </div>
               )}
-              
-              {summary && (
-                summary.startsWith('Error:') ? (
-                  <div className="border-l-2 border-[var(--accent-muted)] pl-4 py-2">
-                    <p className="text-[var(--text-muted)] text-sm">{summary.replace('Error: ', '')}</p>
+
+              <div>
+                <div className="flex items-baseline justify-between border-b border-[var(--border-muted)] pb-1.5 mb-3">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-[var(--text-muted)]">Labels</p>
+                  {user && (
+                    <button
+                      onClick={() => setShowLabelPicker(prev => !prev)}
+                      className="font-mono text-[11px] text-[var(--accent)] hover:underline cursor-pointer"
+                    >
+                      {showLabelPicker ? 'Done' : 'Edit'}
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {billLabels.map(l => (
+                    <span key={l.id} className="flex items-center gap-1 px-2 py-0.5 bg-[var(--background)] border border-[var(--border)] font-mono text-[11px] text-[var(--text-secondary)]">
+                      {l.label}
+                      {user && showLabelPicker && (
+                        <button onClick={() => handleRemoveLabel(l.id)} className="text-[var(--text-muted)] hover:text-[var(--vetoed)] cursor-pointer leading-none px-0.5 -mr-0.5">×</button>
+                      )}
+                    </span>
+                  ))}
+                  {billLabels.length === 0 && !showLabelPicker && (
+                    <span className="text-sm text-[var(--text-muted)]">None yet</span>
+                  )}
+                </div>
+                {user && showLabelPicker && (
+                  <div className="mt-2 space-y-2">
+                    <div className="flex flex-wrap gap-1.5">
+                      {allLabels.filter(l => !billLabels.find(bl => bl.id === l.id)).map(l => (
+                        <button
+                          key={l.id}
+                          onClick={() => handleAddLabel(l.id)}
+                          className="px-2 py-0.5 border border-dashed border-[var(--border)] font-mono text-[11px] text-[var(--text-muted)] hover:border-[var(--ink)] hover:text-[var(--text-primary)] cursor-pointer transition-colors"
+                        >
+                          + {l.label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        value={newLabelText}
+                        onChange={e => setNewLabelText(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleCreateLabel()}
+                        placeholder="New label…"
+                        className="flex-1 bg-[var(--background)] border border-[var(--border)] px-2 py-1 font-mono text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--ink)]"
+                      />
+                      <button
+                        onClick={handleCreateLabel}
+                        className="px-3 py-1 text-xs font-semibold border border-[var(--ink)] text-[var(--text-primary)] hover:bg-[var(--ink)] hover:text-white transition-colors cursor-pointer"
+                      >
+                        Create
+                      </button>
+                    </div>
                   </div>
-                ) : (
-                  <div className="border-l-2 border-[var(--accent)] pl-4 py-2">
-                    <p className="text-xs uppercase tracking-wide text-[var(--text-muted)] mb-2">AI Summary</p>
-                    <p className="text-[var(--text-secondary)] leading-relaxed">{summary}</p>
+                )}
+              </div>
+
+              {votes.length > 0 && (
+                <div>
+                  {sectionHead('Votes')}
+                  <div className="space-y-2">
+                    {votes.map((v: any, i: number) => (
+                      <div key={i} className="text-sm flex flex-wrap items-baseline gap-x-3">
+                        <span className="font-mono text-xs text-[var(--text-muted)]">{v.voteDate}</span>
+                        <span className="font-medium text-[var(--text-primary)]">
+                          {v.voteType}{v.committee?.name ? ` — ${v.committee.name}` : ''}
+                        </span>
+                        <span className="font-mono text-xs text-[var(--text-secondary)]">
+                          {Object.entries(v.memberVotes?.items || {})
+                            .map(([kind, val]: [string, any]) => `${kind} ${val?.size ?? val?.items?.length ?? 0}`)
+                            .join(' · ')}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                )
+                </div>
+              )}
+
+              {actions.length > 0 && (
+                <div>
+                  {sectionHead('Full history')}
+                  <div className="max-h-48 overflow-y-auto space-y-1.5">
+                    {actions.map((a: any, i: number) => (
+                      <div key={i} className="text-sm flex gap-3 items-baseline">
+                        <span className="font-mono text-[11px] text-[var(--text-muted)] shrink-0 w-20">{a.date}</span>
+                        <span className="text-[var(--text-secondary)]">{a.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
           )}

@@ -41,3 +41,5 @@ target/
 dump.rdb
 *.rdb
 
+CLAUDE.md
+

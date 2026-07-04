@@ -1,5 +1,8 @@
 package com.legistrack.app.service;
 
+import com.legistrack.app.dto.NotificationDto;
+import com.legistrack.app.dto.NotificationsResponseDto;
+import com.legistrack.app.exception.NotFoundException;
 import com.legistrack.app.model.Bill;
 import com.legistrack.app.model.Notification;
 import com.legistrack.app.model.SavedBill;
@@ -11,24 +14,44 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
-@SuppressWarnings("null")
 public class NotificationService {
     private static final Logger logger = LoggerFactory.getLogger(NotificationService.class);
-    
+
     private final NotificationRepository notificationRepository;
     private final SavedBillRepository savedBillRepository;
     private final AwsSqsService awsSqsService;
 
     public NotificationService(NotificationRepository notificationRepository,
-                              SavedBillRepository savedBillRepository,
-                              AwsSqsService awsSqsService) {
+                               SavedBillRepository savedBillRepository,
+                               AwsSqsService awsSqsService) {
         this.notificationRepository = notificationRepository;
         this.savedBillRepository = savedBillRepository;
         this.awsSqsService = awsSqsService;
+    }
+
+    public NotificationsResponseDto getNotificationsForUser(UUID userId) {
+        List<Notification> notifications = notificationRepository.findTop50ByUserIdOrderByCreatedAtDesc(userId);
+        long unreadCount = notifications.stream().filter(n -> !n.isProcessed()).count();
+        return new NotificationsResponseDto(
+            notifications.stream().map(NotificationDto::from).toList(),
+            unreadCount);
+    }
+
+    @Transactional
+    public void markRead(UUID userId, UUID notificationId) {
+        Notification notification = notificationRepository.findById(notificationId)
+            .filter(n -> userId.equals(n.getUserId()))
+            .orElseThrow(() -> new NotFoundException("Notification not found"));
+        notification.setProcessed(true);
+        notificationRepository.save(notification);
+    }
+
+    @Transactional
+    public void markAllRead(UUID userId) {
+        notificationRepository.markAllProcessedForUser(userId);
     }
 
     @Transactional
@@ -58,25 +81,12 @@ public class NotificationService {
                     bill.getStatus()
                 );
 
-                logger.info("Created and published notification for user {} about bill {}", 
+                logger.info("Created and published notification for user {} about bill {}",
                     savedBill.getUserId(), bill.getBasePrintNoStr());
             } catch (Exception e) {
-                logger.error("Error creating notification for user {}: {}", 
+                logger.error("Error creating notification for user {}: {}",
                     savedBill.getUserId(), e.getMessage(), e);
             }
         }
-    }
-
-    public List<Notification> getUnprocessedNotifications() {
-        return notificationRepository.findByProcessedFalseOrderByCreatedAtAsc();
-    }
-
-    @Transactional
-    public void markAsProcessed(UUID notificationId) {
-        Optional<Notification> notification = notificationRepository.findById(notificationId);
-        notification.ifPresent(n -> {
-            n.setProcessed(true);
-            notificationRepository.save(n);
-        });
     }
 }

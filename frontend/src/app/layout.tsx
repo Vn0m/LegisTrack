@@ -1,21 +1,11 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AuthHeaderClient from './AuthHeaderClient';
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import NotificationBell from '../components/NotificationBell';
 
 export const metadata: Metadata = {
   title: "LegisTrack",
-  description: "Search NY legislation with AI summaries",
+  description: "Track New York State legislation from introduction to law",
 };
 
 export default function RootLayout({
@@ -25,15 +15,21 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <header className="border-b border-[var(--border-muted)]">
+      <body className="antialiased">
+        <header className="bg-[var(--ink)] text-white">
           <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="font-serif text-xl font-semibold tracking-tight">LegisTrack</span>
-              <span className="text-[var(--text-muted)] text-xs uppercase tracking-widest hidden sm:inline">NY Legislature</span>
+            <div className="flex items-baseline gap-3 min-w-0">
+              <span className="font-display text-2xl font-black tracking-tight">LegisTrack</span>
+              <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-white/50 hidden sm:inline truncate">
+                New York State Legislature
+              </span>
             </div>
-          <AuthHeaderClient />
+            <div className="flex items-center gap-2 shrink-0">
+              <NotificationBell />
+              <AuthHeaderClient />
+            </div>
           </div>
+          <div className="h-[3px] bg-[var(--gold)]" />
         </header>
         <div className="max-w-6xl mx-auto w-full">{children}</div>
       </body>

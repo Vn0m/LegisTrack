@@ -14,8 +14,6 @@ import java.util.UUID;
 @Repository
 public interface SavedBillRepository extends JpaRepository<SavedBill, UUID> {
     
-    List<SavedBill> findByUserId(UUID userId);
-    
     List<SavedBill> findByBill(Bill bill);
 
     Optional<SavedBill> findByUserIdAndBill_Id(UUID userId, UUID billId);
@@ -26,4 +24,7 @@ public interface SavedBillRepository extends JpaRepository<SavedBill, UUID> {
     
     @Query("SELECT sb FROM SavedBill sb JOIN FETCH sb.bill WHERE sb.userId = :userId ORDER BY sb.savedAt DESC")
     List<SavedBill> findByUserIdWithBillDetails(@Param("userId") UUID userId);
+
+    @Query("SELECT sb FROM SavedBill sb JOIN FETCH sb.bill")
+    List<SavedBill> findAllWithBill();
 }
