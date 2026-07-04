@@ -193,7 +193,7 @@ export async function createLabel(label: string): Promise<LabelInfo> {
 
 export async function getBillLabels(basePrintNoStr: string): Promise<{ labels: LabelInfo[] }> {
   const res = await fetch(`/api/labels/bill/${encodeURIComponent(basePrintNoStr)}`);
-  if (!res.ok) return { labels: [] };
+  if (!res.ok) throw new Error('Failed to fetch bill labels');
   return res.json();
 }
 
