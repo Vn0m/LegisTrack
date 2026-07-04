@@ -14,22 +14,22 @@
 
 ---
 
-Search NY Senate bills, get AI-generated summaries of complex legislation, and save bills to track over time.
+Search NY Senate bills, get AI-generated summaries of complex legislation, and track bills over time.
 
 ## Features
 
-- Search bills by keyword and session year
-- View bill details, sponsors, and status
-- AI summaries of dense legal text
-- Save and annotate bills (requires sign-in)
+- Keyword search (with chamber/status/committee filters) and semantic search over bill text
+- Bill detail: sponsors, co-sponsors, committee, votes, full history, AI summaries, full-text PDF
+- Track bills with notes and labels; get notified when a tracked bill's status changes
+- Sign in required for tracking, labels, and AI summaries
 
 ## Tech Stack
 
 **Frontend:** Next.js, React, TypeScript, Tailwind CSS
 
-**Backend:** Spring Boot (Java 17), PostgreSQL, Redis
+**Backend:** Spring Boot (Java 17), PostgreSQL + pgvector, Redis
 
-**Services:** Supabase (auth + database), Hugging Face (AI), NY Senate API
+**Services:** Supabase (auth + database), Hugging Face (embeddings + summaries), NY Senate API, AWS SQS
 
 ## How to Run
 
@@ -61,16 +61,25 @@ npm run dev
 
 ## Environment Variables
 
-Create `.env` in the root:
+Create `.env` in the root (see `.env.example`):
 
 ```env
 DATABASE_URL=jdbc:postgresql://...
 DATABASE_USERNAME=postgres
 DATABASE_PASSWORD=...
 SUPABASE_URL=https://xxx.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=...
+# Only needed if your Supabase project still signs with the legacy HS256
+# secret. Once rotated to an asymmetric key, JWKS covers everything.
+SUPABASE_JWT_SECRET=
 NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 NY_SENATE_API_KEY=...
 HUGGINGFACE_API_KEY=...
+REDIS_URL=redis://localhost:6379
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+SQS_QUEUE_URL=https://sqs.us-east-1.amazonaws.com/...
 ```
+
+Auth requires either rotating your Supabase project's signing key to an asymmetric key (dashboard → JWT Keys → Rotate), or setting `SUPABASE_JWT_SECRET` above.
