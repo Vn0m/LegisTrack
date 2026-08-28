@@ -31,6 +31,14 @@ Search NY Senate bills, get AI-generated summaries of complex legislation, and t
 
 **Services:** Supabase (auth + database), Hugging Face (embeddings + summaries), NY Senate API, AWS SQS
 
+## Architecture
+
+![LegisTrack architecture](architecture.png)
+
+NY Senate API is the source of truth, Redis is the hot cache, Postgres is the durable store plus
+pgvector index for semantic search. A daily scheduler diffs saved bills for status changes and
+publishes to SQS and SES consumes it.
+
 ## How to Run
 
 ### Docker (recommended)
